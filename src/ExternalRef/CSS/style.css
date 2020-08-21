@@ -1,0 +1,57 @@
+
+.alertify .ajs-modal{
+    z-index: 999999 !important; 
+}
+.alertify .ajs-dialog{	
+    top: 40px;
+    font:14px/20px BlissLight,Arial;
+}
+.alertify .ajs-header {    
+    background-color: #313e47 !important;
+    color:#fff;
+}
+.alertify-notifier.ajs-top {
+    top: 80px !important;
+}
+.ajs-button{
+	background: #0078d4;
+	border-color: #0078d4;
+	border-radius:5px;
+	color:#fff;
+	padding:10px 0;
+	text-align:center;
+	margin:0 10px 15px !important;
+	font:15px 'BlissPro-Bold',Arial;
+	width:110px;
+	outline:none;
+}
+.ajs-button:hover{
+	background: #0078d4;
+	border-color: #0078d4;
+}
+.ajs-button.ajs-cancel{
+	background:#53545E;
+	border-color:#53545E;
+}
+.ajs-button.ajs-cancel:hover{
+	background:#53545E;
+	border-color:#53545E;
+}
+.alertify .ajs-commands button.ajs-close{
+	margin-top:7px;
+}
+.alertify-notifier .ajs-message.ajs-error{
+	background-color:#0078d4;
+	color:#fff;
+	margin-top:10px;
+	white-space:nowrap;
+}
+.alertify-notifier .ajs-message.ajs-success{
+	background-color:#0078d4;
+	color:#fff;
+	margin-top:10px;
+	white-space:nowrap;
+}
+.alertify .ajs-body .ajs-content{
+	padding:16px 0;
+}
