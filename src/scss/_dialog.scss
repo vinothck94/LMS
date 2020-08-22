@@ -29,9 +29,13 @@
     min-width: 560px;
     width: 600px;
   }
-
+  .MuiDialogContent-root {
+    padding-top:25px !important ;
+  }
   .MuiDialogActions-root {
     padding-right: 25px !important;
+    padding-bottom: 25px ;
+    padding-top: 15px ;
   }
 
   .MuiDialogContent-root {
@@ -47,4 +51,9 @@
       }
     }
   }
+}
+.MuiDialogActions-root {
+  padding-right: 25px !important;
+  padding-bottom: 25px !important;
+  padding-top: 15px !important;
 }

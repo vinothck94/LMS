@@ -112,8 +112,8 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     'bg-pink',
     'bg-success',
     'bg-purple',
-    'bg-info',
-    'bg-pink',
+    'bg-lavandor',
+    'bg-orange',
     'bg-success'
   ];
 
@@ -667,20 +667,21 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
 
     return (
       <div className={styles.ungotiApplyLeave}>
-        <div>
-          <div className="page-title">
-            <Grid container spacing={2} justify="space-between" >
-              <Typography component={'h3'}>
-                Types of Leave
+        <div >
+          <section className="page-section">
+            <div className="page-title">
+              <Grid container spacing={2} justify="space-between" >
+                <Typography component={'h3'}>
+                  Types of Leave
         </Typography>
-              <ButtonGroup disableElevation variant="contained" size="small" color="primary">
-                <Button size="small" onClick={this.openPopup}>Apply Leave</Button>
-                {/* <Button size="small" color="primary" onClick={() => { this.setState({ openleavemenu: true }) }}>
+                <ButtonGroup disableElevation variant="contained" size="small" color="primary">
+                  <Button size="small" onClick={this.openPopup}>Apply Leave</Button>
+                  {/* <Button size="small" color="primary" onClick={() => { this.setState({ openleavemenu: true }) }}>
                   <ArrowDropDownIcon />
                 </Button> */}
-              </ButtonGroup>
+                </ButtonGroup>
 
-              {/* <Popper open={this.state.openleavemenu} anchorEl={this.anchorRef.current} role={undefined} transition disablePortal>
+                {/* <Popper open={this.state.openleavemenu} anchorEl={this.anchorRef.current} role={undefined} transition disablePortal>
                 {({ TransitionProps, placement }) => (
                   <Grow
                     {...TransitionProps}
@@ -709,81 +710,83 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
 
 
 
-            </Grid>
-          </div>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
-              <Grid container spacing={2}>
-
-                {
-                  this.state.allLeaveTypes.map((leaveType, index) => {
-
-                    var totalLeave = this.state.leaveBalance[leaveType.Title];
-                    var usedLeave = this.state.leaveBalance[leaveType.Title + 'Used'];
-
-                    var available = parseFloat(totalLeave) - parseFloat(usedLeave);
-
-                    var cardcolor = "dashboard-card " + this.leaveColors[index];
-
-                    var progressValue = (parseFloat(usedLeave) / parseFloat(totalLeave)) * 100;
-
-                    return (
-                      <Grid item xs={12} sm={4} md={2} lg={2} xl={2}>
-                        <Paper elevation={0} square={false} className={cardcolor}>
-                          <div className="heading-group">
-                            <div className={'dashboard-heading-icon dashboard-heading-icon-casuel'}>
-                            </div>
-                            <div className={'dashboard-heading'}>
-                              <Typography component={'h6'}>
-                                {leaveType.DisplayName}
-                              </Typography>
-                              <Typography component={'h2'} className={"card-totalnumber"}>
-                                {totalLeave}
-                              </Typography>
-                            </div>
-                          </div>
-                          <div className="dashboard-chart">
-                            {/* <LinearProgress className="dashboard-chart-progress" /> */}
-                            <LinearProgress variant="determinate" value={progressValue} />
-
-                          </div>
-                          <div className="dashboard-group">
-                            <List className="dashboard-list" >
-                              <ListItem>
-                                <ListItemText>
-                                  Available <Badge>{available}</Badge>
-                                </ListItemText>
-
-                              </ListItem>
-                              <ListItem>
-                                <ListItemText>
-                                  Consumed <Badge>{usedLeave}</Badge>
-                                </ListItemText>
-
-                              </ListItem>
-                              <ListItem>
-                                <ListItemText>
-                                  Pending <Badge>0</Badge>
-                                </ListItemText>
-
-                              </ListItem>
-
-                            </List>
-
-                          </div>
-
-                        </Paper>
-                      </Grid>
-                    );
-                  })
-                }
-
-
-
               </Grid>
-            </Grid>
+            </div>
+          </section>
+          <section className="page-section">
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
+                <Grid container spacing={2}>
 
-            {/* <Grid item xs={3} sm={3} md={3} lg={3} xl={3}>
+                  {
+                    this.state.allLeaveTypes.map((leaveType, index) => {
+
+                      var totalLeave = this.state.leaveBalance[leaveType.Title];
+                      var usedLeave = this.state.leaveBalance[leaveType.Title + 'Used'];
+
+                      var available = parseFloat(totalLeave) - parseFloat(usedLeave);
+
+                      var cardcolor = "dashboard-card " + this.leaveColors[index];
+
+                      var progressValue = (parseFloat(usedLeave) / parseFloat(totalLeave)) * 100;
+
+                      return (
+                        <Grid className="dashboard-grid" item xs={12} sm={4} md={2} lg={"auto"} xl={"auto"}>
+                          <Paper elevation={2} square={false} className={cardcolor}>
+                            <div className="heading-group">
+                              <div className={'dashboard-heading-icon dashboard-heading-icon-casuel'}>
+                              </div>
+                              <div className={'dashboard-heading'}>
+                                <Typography component={'h6'}>
+                                  {leaveType.DisplayName}
+                                </Typography>
+                                <Typography component={'h2'} className={"card-totalnumber"}>
+                                  {totalLeave}
+                                </Typography>
+                              </div>
+                            </div>
+                            <div className="dashboard-chart">
+                              {/* <LinearProgress className="dashboard-chart-progress" /> */}
+                              <LinearProgress variant="determinate" className="dashboard-chart-progress" value={progressValue} />
+
+                            </div>
+                            <div className="dashboard-group">
+                              <List className="dashboard-list" >
+                                <ListItem>
+                                  <ListItemText>
+                                    Available <Badge>{available}</Badge>
+                                  </ListItemText>
+
+                                </ListItem>
+                                <ListItem>
+                                  <ListItemText>
+                                    Consumed <Badge>{usedLeave}</Badge>
+                                  </ListItemText>
+
+                                </ListItem>
+                                <ListItem>
+                                  <ListItemText>
+                                    Pending <Badge>0</Badge>
+                                  </ListItemText>
+
+                                </ListItem>
+
+                              </List>
+
+                            </div>
+
+                          </Paper>
+                        </Grid>
+                      );
+                    })
+                  }
+
+
+
+                </Grid>
+              </Grid>
+
+              {/* <Grid item xs={3} sm={3} md={3} lg={3} xl={3}>
               <TextField
                 id="standard-select-currency"
                 onChange={(e) => this.searchLeave.call(this, e)}
@@ -796,37 +799,37 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
               </TextField>
             </Grid> */}
 
-            <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
+              <Grid className="manageLeave" item xs={12} sm={12} md={12} lg={12} xl={12}>
 
-              <MaterialTable
-                title="List of Leave"
-                icons={tableIcons}
-                columns={columns}
-                data={this.state.listLeaveDetails}
-                actions={[
-                  {
-                    icon: forwardRef((props: any, ref: any) => <EditIcon />),
-                    tooltip: 'Edit',
-                    onClick: (event, rowData: LeaveDetails) => this.editLeave(rowData.Id)
-                  },
-                  {
-                    icon: forwardRef((props: any, ref: any) => <DeleteIcon />),
-                    tooltip: 'Cancel',
-                    onClick: (event, rowData: LeaveDetails) => this.deleteLeave(rowData.Id)
-                  }
-                  ,
-                  {
-                    icon: forwardRef((props: any, ref: any) => <VisibilityIcon />),
-                    tooltip: 'View',
-                    onClick: (event, rowData: LeaveDetails) => this.viewLeave(rowData.Id)
-                  }
-                ]}
-                options={{
-                  actionsColumnIndex: 5
-                }}
-              />
+                <MaterialTable
+                  title="List of Leave"
+                  icons={tableIcons}
+                  columns={columns}
+                  data={this.state.listLeaveDetails}
+                  actions={[
+                    {
+                      icon: forwardRef((props: any, ref: any) => <EditIcon />),
+                      tooltip: 'Edit',
+                      onClick: (event, rowData: LeaveDetails) => this.editLeave(rowData.Id)
+                    },
+                    {
+                      icon: forwardRef((props: any, ref: any) => <DeleteIcon />),
+                      tooltip: 'Cancel',
+                      onClick: (event, rowData: LeaveDetails) => this.deleteLeave(rowData.Id)
+                    }
+                    ,
+                    {
+                      icon: forwardRef((props: any, ref: any) => <VisibilityIcon />),
+                      tooltip: 'View',
+                      onClick: (event, rowData: LeaveDetails) => this.viewLeave(rowData.Id)
+                    }
+                  ]}
+                  options={{
+                    actionsColumnIndex: 5
+                  }}
+                />
 
-              {/* <MaterialTable
+                {/* <MaterialTable
                 title="Simple Action Preview"
                 columns={[
                   { title: 'Name', field: 'name' },
@@ -845,7 +848,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
               /> */}
 
 
-              {/* <Table component={Paper} elevation={0}>
+                {/* <Table component={Paper} elevation={0}>
                 <TableContainer>
                   <Table stickyHeader aria-label="sticky table" className="table-container">
                     <TableHead>
@@ -909,9 +912,10 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
                   onChangeRowsPerPage={handleChangeRowsPerPage}
                 />
               </Table> */}
-            </Grid>
+              </Grid>
 
-          </Grid>
+            </Grid>
+          </section>
         </div>
 
         <Dialog open={this.state.openAddPopup} className="applyLeaveDialog">
@@ -923,8 +927,8 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
 
 
               <Grid container spacing={2} className="datefield">
-                <Grid sm={12} md={6}>
-                  <Typography component={"p"} className="small-text" onClick={this.showDatePicker.bind(this, true)}>
+                <Grid sm={12} md={6} onClick={this.showDatePicker.bind(this, true)}>
+                  <Typography component={"p"} className="small-text">
                     FROM DATE
                </Typography>
 
@@ -933,12 +937,12 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
                   </Typography>
 
                 </Grid>
-                <div className="dateRangePicker-totalDays">
+                <div className="dateRangePicker-totalDays" onClick={this.showDatePicker.bind(this, true)}>
                   <span className="number">{this.state.formData.NoofDays} Day(s)</span>
 
                 </div>
-                <Grid sm={12} md={6} className={"text-right"}>
-                  <Typography component={"p"} className="small-text" onClick={this.showDatePicker.bind(this, true)}>
+                <Grid sm={12} md={6} className={"text-right"} onClick={this.showDatePicker.bind(this, true)}>
+                  <Typography component={"p"} className="small-text">
                     TO DATE
                </Typography>
 
@@ -962,7 +966,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
             </section>
 
             <Grid container justify={"space-between"} alignItems={"center"}>
-              <Grid sm={5}>
+              <Grid sm={5} className="text-right">
                 <ButtonGroup color="primary" variant="contained" size={"small"} disableElevation>
                   <Button variant={"contained"} color={this.state.formData.FromHalf == '1' ? 'primary' : 'default'} onClick={this.setFormHalf.bind(this, '1')}>First half</Button>
                   <Button variant={"contained"} color={this.state.formData.FromHalf == '2' ? 'primary' : 'default'} onClick={this.setFormHalf.bind(this, '2')}>Second half</Button>
@@ -1009,6 +1013,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
                   multiline
                   label="Note"
                   name="Detail"
+                  rows="4"
                   placeholder="Please enter  reason for applying leave"
                   className="form-group"
                   variant={"outlined"}
@@ -1100,10 +1105,10 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
           </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={this.closeDelete} color="primary">
+            <Button disableElevation variant="contained" onClick={this.closeDelete} color="default">
               No
           </Button>
-            <Button onClick={this.confirmDelete} color="primary" autoFocus>
+            <Button disableElevation variant="contained" onClick={this.confirmDelete} color="primary" autoFocus>
               Yes
           </Button>
           </DialogActions>
