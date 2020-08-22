@@ -1,0 +1,59 @@
+.MuiDialog {
+  &-paper {
+    border: none !important;
+    border-radius: 0 !important;
+
+  }
+
+  &Title {
+    &-bg {
+      background-color: $colorlines;
+      padding: 0;
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        margin: 0 !important;
+      }
+    }
+  }
+
+
+}
+
+.applyLeaveDialog {
+  .MuiDialog-paper {
+    min-width: 560px;
+    width: 600px;
+  }
+  .MuiDialogContent-root {
+    padding-top:25px !important ;
+  }
+  .MuiDialogActions-root {
+    padding-right: 25px !important;
+    padding-bottom: 25px ;
+    padding-top: 15px ;
+  }
+
+  .MuiDialogContent-root {
+
+    .materialui-daterange-picker-makeStyles-dateRangePicker-2 {
+      &.modal-DateRagePicker {
+        position: fixed;
+        z-index: 1000;
+        left: 25%;
+        right: 25%;
+        width: 800px;
+
+      }
+    }
+  }
+}
+.MuiDialogActions-root {
+  padding-right: 25px !important;
+  padding-bottom: 25px !important;
+  padding-top: 15px !important;
+}

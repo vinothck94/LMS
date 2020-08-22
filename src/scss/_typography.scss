@@ -1,0 +1,44 @@
+%heading {
+    margin: 0 0 10px 0;
+    
+}
+h6,.h6 {
+    &.MuiTypography-body1 {
+        font-size: $font-size-h6 !important;
+       margin: 0;
+        color: $color-light;
+    }
+}
+h5,.h5 {
+    &.MuiTypography-body1 {
+        font-size: $font-size-h5 !important;
+        @extend %heading;
+    }
+}
+h4,.h4 {
+    &.MuiTypography-body1 {
+        font-size: $font-size-h4 !important;
+        @extend %heading;
+    }
+}
+h3,.h3 {
+    &.MuiTypography-body1 {
+        font-size: $font-size-h3 !important;
+        @extend %heading;
+    }
+}
+
+
+h2,.h2 {
+    &.MuiTypography-body1 {
+        font-size: $font-size-h2 !important;
+        @extend %heading;
+    }
+}
+
+h1,.h1 {
+    &.MuiTypography-body1 {
+        font-size: $font-size-h1 !important;
+        @extend %heading;
+    }
+}

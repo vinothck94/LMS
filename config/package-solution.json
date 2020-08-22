@@ -1,0 +1,13 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "ungoti-lms-client-side-solution",
+    "id": "194ad95e-fb78-44aa-bc78-d91b9c10c779",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "isDomainIsolated": false
+  },
+  "paths": {
+    "zippedPackage": "solution/ungoti-lms.sppkg"
+  }
+}
