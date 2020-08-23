@@ -537,6 +537,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
 
     formData.ApproverId = this.state.currentUser.Id;
     formData.RequesterId = this.state.currentUser.Id;
+    formData.Status = 'Pending';
 
     if (formData.Id) {
       sp.web.lists
@@ -583,12 +584,21 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     sp.web.lists
       .getByTitle("LeaveRequest")
       .items.getById(this.deleteId)
-      .delete()
+      .get()
       .then((response) => {
-        this.setState({ openDeleteConfirm: false });
-        alertify.success('Leave cancelled successfully');
-        this.init();
+        response.Status = 'Cancelled';
+        sp.web.lists
+          .getByTitle("LeaveRequest")
+          .items.getById(response.Id)
+          .update(response)
+          .then((updateresponse) => {
+            this.setState({ openDeleteConfirm: false });
+            alertify.success('Leave cancelled successfully');
+            this.init();
+          });
       });
+
+
   }
 
   public showDatePicker = (value) => {
@@ -807,21 +817,22 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
                   columns={columns}
                   data={this.state.listLeaveDetails}
                   actions={[
-                    {
+                    (rowData: LeaveDetails) => ({
                       icon: forwardRef((props: any, ref: any) => <EditIcon />),
                       tooltip: 'Edit',
-                      onClick: (event, rowData: LeaveDetails) => this.editLeave(rowData.Id)
-                    },
-                    {
+                      onClick: (event, value) => this.editLeave(rowData.Id),
+                      disabled: rowData["Status"] == 'Cancelled'
+                    }),
+                    (rowData: LeaveDetails) => ({
                       icon: forwardRef((props: any, ref: any) => <DeleteIcon />),
                       tooltip: 'Cancel',
-                      onClick: (event, rowData: LeaveDetails) => this.deleteLeave(rowData.Id)
-                    }
-                    ,
+                      onClick: (event, value) => this.deleteLeave(rowData.Id),
+                      disabled: rowData["Status"] == 'Cancelled'
+                    }),
                     {
                       icon: forwardRef((props: any, ref: any) => <VisibilityIcon />),
                       tooltip: 'View',
-                      onClick: (event, rowData: LeaveDetails) => this.viewLeave(rowData.Id)
+                      onClick: (event, rowData: LeaveDetails) => this.viewLeave(rowData.Id),
                     }
                   ]}
                   options={{
