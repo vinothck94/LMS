@@ -117,7 +117,13 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     'bg-success'
   ];
 
-
+  public leaveIcon = {
+    vacation: 'dashboard-heading-icon-vacation',
+    unpaid: 'dashboard-heading-icon-unpaid',
+    sick: 'dashboard-heading-icon-sick',
+    special: 'dashboard-heading-icon-special',
+    others: 'dashboard-heading-icon-others',
+  };
 
   constructor(props) {
     super(props);
@@ -175,7 +181,6 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
       this.loadLeaveBalance();
     });
     this.loadAppliedLeave();
-    this.loadLeaveTypes();
     this.loadWeekEndConfig();
     this.loadHolidays();
   }
@@ -219,6 +224,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
           });
         }
         this.setState({ listLeaveDetails: lstData, copyListLeaveDetails: lstData });
+        this.loadLeaveTypes();
       });
   }
 
@@ -740,11 +746,22 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
 
                       var progressValue = (parseFloat(usedLeave) / parseFloat(totalLeave)) * 100;
 
+                      var leaveIcon = this.leaveIcon.others;
+                      if (leaveType.DisplayName.toLowerCase().indexOf('vacation') >= 0) {
+                        leaveIcon = this.leaveIcon.vacation;
+                      } else if (leaveType.DisplayName.toLowerCase().indexOf('sick') >= 0) {
+                        leaveIcon = this.leaveIcon.sick;
+                      } else if (leaveType.DisplayName.toLowerCase().indexOf('special') >= 0) {
+                        leaveIcon = this.leaveIcon.special;
+                      } else if (leaveType.DisplayName.toLowerCase().indexOf('paid') >= 0) {
+                        leaveIcon = this.leaveIcon.unpaid;
+                      }
+
                       return (
                         <Grid className="dashboard-grid" item xs={12} sm={4} md={2} lg={"auto"} xl={"auto"}>
                           <Paper elevation={2} square={false} className={cardcolor}>
                             <div className="heading-group">
-                              <div className={'dashboard-heading-icon dashboard-heading-icon-casuel'}>
+                              <div className={'dashboard-heading-icon ' + leaveIcon}>
                               </div>
                               <div className={'dashboard-heading'}>
                                 <Typography component={'h6'}>

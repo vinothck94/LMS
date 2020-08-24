@@ -87,8 +87,9 @@ a {
         height: 7px;
       }
       &.MuiLinearProgress-colorPrimary {
-        background-color: $colorlines;
+        background-color: white;
         border-radius: 4px;
+        border:1px solid;
       }
     }
   }
@@ -109,21 +110,22 @@ a {
       background-position: center;
       background-repeat: no-repeat;
       background-size: 25px;
-      visibility: hidden;
-      opacity: 0;
-      &-paid {
-        background-image: url("#{$imgPath}/paid.png");
+      // visibility: hidden;
+      // opacity: 0;
+      &-vacation {
+        background-image: url("#{$imgPath}/vacation-leave.png");
       }
-      &-non-paid {
-        background-image: url("#{$imgPath}/non-paid.png");
+      &-unpaid {
+        background-image: url("#{$imgPath}/Unpaid-leave.png");
       }
       &-sick {
-        background-image: url("#{$imgPath}/sick-paid.png");
+        background-image: url("#{$imgPath}/sick-leave.png");
       }
-      &-casuel {
-        background-image: url("#{$imgPath}/casuel-paid.png");
+      &-special {
+        background-image: url("#{$imgPath}/special-leave.png");
       }
       &-others {
+        background-image: url("#{$imgPath}/team-leave.png");
       }
     }
   }
@@ -197,6 +199,7 @@ a {
       &.MuiTypography-body1 {
         font-size: $font-size-14 - 1 !important;
         color: $color-primary;
+        font-weight: 600;
       }
     }
   }
