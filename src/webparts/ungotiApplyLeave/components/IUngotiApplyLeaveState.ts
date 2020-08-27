@@ -5,7 +5,9 @@ export interface IUngotiApplyLeaveState {
     openDeleteConfirm: boolean;
     listLeaveDetails: LeaveDetails[];
     copyListLeaveDetails: LeaveDetails[];
-    
+
+    fileName: string;
+
     formData: LeaveRequest;
 
     allLeaveTypes: any[];
@@ -34,6 +36,7 @@ export interface LeaveRequest {
     Status: string;
     FromHalf: string;
     ToHalf: string;
+    DocumentUrl: string;
 }
 
 export interface LeaveDetails {

@@ -3,7 +3,8 @@ import * as ReactDom from 'react-dom';
 import { Version } from '@microsoft/sp-core-library';
 import {
   IPropertyPaneConfiguration,
-  PropertyPaneTextField
+  PropertyPaneTextField,
+  PropertyPaneCheckbox
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 
@@ -13,6 +14,10 @@ import { IUngotiApplyLeaveProps } from './components/IUngotiApplyLeaveProps';
 
 export interface IUngotiApplyLeaveWebPartProps {
   description: string;
+  card: boolean;
+  list: boolean;
+  cardTitle: string;
+  listTitle: string;
 }
 
 export default class UngotiApplyLeaveWebPart extends BaseClientSideWebPart<IUngotiApplyLeaveWebPartProps> {
@@ -23,6 +28,10 @@ export default class UngotiApplyLeaveWebPart extends BaseClientSideWebPart<IUngo
       {
         description: this.properties.description,
         siteUrl: this.context.pageContext.web.absoluteUrl,
+        card: this.properties.card,
+        list: this.properties.list,
+        cardTitle: this.properties.cardTitle,
+        listTitle: this.properties.listTitle,
       }
     );
 
@@ -42,14 +51,32 @@ export default class UngotiApplyLeaveWebPart extends BaseClientSideWebPart<IUngo
       pages: [
         {
           header: {
-            description: strings.PropertyPaneDescription
+            description: 'Configuration'
           },
           groups: [
             {
-              groupName: strings.BasicGroupName,
               groupFields: [
                 PropertyPaneTextField('description', {
                   label: strings.DescriptionFieldLabel
+                }),
+                PropertyPaneTextField('cardTitle', {
+                  label: 'Card Title'
+                }),
+                PropertyPaneTextField('listTitle', {
+                  label: 'List Title'
+                })
+              ]
+            },
+            {
+              groupName: "UI Config",
+              groupFields: [
+                PropertyPaneCheckbox('card', {
+                  checked: true,
+                  text: "Card"
+                }),
+                PropertyPaneCheckbox('list', {
+                  checked: true,
+                  text: "List"
                 })
               ]
             }

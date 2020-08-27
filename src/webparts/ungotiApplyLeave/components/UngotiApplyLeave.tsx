@@ -70,6 +70,11 @@ import ViewColumn from '@material-ui/icons/ViewColumn';
 
 import MaterialTable, { Column, Icons } from 'material-table';
 
+
+import IconButton from '@material-ui/core/IconButton';
+import PhotoCamera from '@material-ui/icons/PhotoCamera';
+import DeleteForeverIcon from '@material-ui/icons/DeleteForever';
+
 import '../../../scss/styles.scss';
 
 import {
@@ -98,6 +103,9 @@ var alertify: any = require("../../../ExternalRef/JS/alertify.min.js");
 
 import { IUngotiApplyLeaveState, LeaveDetails } from './IUngotiApplyLeaveState';
 
+var folderPath = 'Leave Documents';
+
+
 export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveProps, IUngotiApplyLeaveState> {
 
   public deleteId = 0;
@@ -105,6 +113,8 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
   public oldLeaveTypeId = 0;
   public oldNoofDays = 0;
   public txtSelectDate = 'Select Date';
+
+  file = null;
 
   public leaveColors = [
     'bg-purple',
@@ -143,6 +153,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
       openDeleteConfirm: false,
       listLeaveDetails: [],
       copyListLeaveDetails: [],
+      fileName: '',
       formData: {
         Id: 0,
         ApproverId: 0,
@@ -155,6 +166,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
         Status: '',
         FromHalf: '1',
         ToHalf: '2',
+        DocumentUrl: '',
       },
 
       allLeaveTypes: [],
@@ -232,6 +244,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     sp.web.lists
       .getByTitle("LeaveTypes")
       .items
+      .filter("Active eq '1'")
       .get()
       .then((res) => {
         var allLeaveTypes = this.state.allLeaveTypes;
@@ -314,6 +327,10 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     this.setState({ openAddPopup: false });
   }
 
+  public removeDoc = () => {
+    this.file = null;
+    this.setState({ fileName: '' });
+  }
 
   public closeViewPopup = () => {
     this.setState({ isview: false });
@@ -333,6 +350,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
       Status: '',
       FromHalf: '1',
       ToHalf: '2',
+      DocumentUrl: ''
     };
     this.setState({ formData: formData, strFrom: this.txtSelectDate, strTo: this.txtSelectDate });
   }
@@ -481,15 +499,23 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
           Status: response.Status,
           FromHalf: response.FromHalf,
           ToHalf: response.ToHalf,
+          DocumentUrl: response.DocumentUrl
         };
         var fromDefaultDate = this.formatDate(from);
         var toDefaultDate = this.formatDate(to);
         this.oldLeaveTypeId = response.LeaveTypeId;
         this.oldNoofDays = parseFloat(response.NoofDays);
+
+        var name = '';
+        if (response.DocumentUrl) {
+          var sdata = response.DocumentUrl.split('/');
+          name = sdata[sdata.length - 1];
+        }
+
         if (view) {
-          this.setState({ formData: formData, strFrom: fromDefaultDate, strTo: toDefaultDate, openAddPopup: false, isview: true });
+          this.setState({ formData: formData, strFrom: fromDefaultDate, strTo: toDefaultDate, fileName: name, openAddPopup: false, isview: true });
         } else {
-          this.setState({ formData: formData, strFrom: fromDefaultDate, strTo: toDefaultDate, openAddPopup: true, isview: false });
+          this.setState({ formData: formData, strFrom: fromDefaultDate, strTo: toDefaultDate, fileName: name, openAddPopup: true, isview: false });
         }
 
       });
@@ -510,10 +536,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
       alertify.error('Leave type is required');
       return;
     }
-    if (!formData.Detail) {
-      alertify.error('Detail is required');
-      return;
-    }
+
     if (formData.From > formData.To) {
       alertify.error('From date is greater than To date');
       return;
@@ -546,13 +569,20 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     formData.Status = 'Pending';
 
     if (formData.Id) {
+      if (!this.state.fileName) {
+        formData.DocumentUrl = '';
+      }
       sp.web.lists
         .getByTitle("LeaveRequest")
         .items.getById(formData.Id)
         .update(formData)
         .then((response) => {
           this.updateLeaveBalance(leaveBalance);
-          alertify.success('Leave updated successfully');
+          if (this.file) {
+            this.uploadfile(formData.Id, 'Leave updated successfully');
+          } else {
+            alertify.success('Leave updated successfully');
+          }
         });
     } else {
       sp.web.lists
@@ -560,7 +590,11 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
         .items.add(formData)
         .then((res) => {
           this.updateLeaveBalance(leaveBalance);
-          alertify.success('Leave applied successfully');
+          if (this.file) {
+            this.uploadfile(res.data.Id, 'Leave applied successfully');
+          } else {
+            alertify.success('Leave applied successfully');
+          }
         });
     }
   }
@@ -574,6 +608,19 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
         this.init();
         this.closePopup();
       });
+  }
+
+  public uploadfile = (newId, msg) => {
+    var siteURL = this.props.siteUrl;
+    sp.web.getFolderByServerRelativeUrl(folderPath).folders.add(folderPath + '/' + newId).then(result => {
+      result.folder.files.add(this.file.name, this.file, true)
+        .then((fresult) => {
+          var filePath = siteURL + '/' + folderPath + '/' + newId + '/' + this.file.name
+          sp.web.lists.getByTitle("LeaveRequest").items.getById(newId).update({ DocumentUrl: filePath }).then(function (result) {
+            alertify.success(msg);
+          });
+        });
+    });
   }
 
   public closeDelete = () => {
@@ -636,12 +683,23 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     this.setState({ formData: formData, openAddPopup: true, openleavemenu: false });
   }
 
+  public fileUpload = (e) => {
+    var files = e.target.files;
+    if (files && files.length > 0) {
+      this.file = files[0]
+      this.setState({ fileName: files[0].name });
+    } else {
+      this.file = null;
+      this.setState({ fileName: "" });
+    }
+  }
+
   public render(): React.ReactElement<IUngotiApplyLeaveProps> {
 
     // const anchorRef = React.useRef(null);
 
     const columns = [
-      { field: 'LeaveType', title: 'Type of Leave' },
+      { field: 'LeaveType', title: 'Type' },
       { field: 'strFrom', title: 'From' },
       { field: 'strTo', title: 'To' },
       { field: 'strNoofDays', title: 'No. of days' },
@@ -688,259 +746,142 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
             <div className="page-title">
               <Grid container spacing={2} justify="space-between" >
                 <Typography component={'h3'}>
-                  Types of Leave
-        </Typography>
+                  {
+                    this.props.card ? this.props.cardTitle : ''
+                  }
+                </Typography>
                 <ButtonGroup disableElevation variant="contained" size="small" color="primary">
-                  <Button size="small" onClick={this.openPopup}>Apply Leave</Button>
-                  {/* <Button size="small" color="primary" onClick={() => { this.setState({ openleavemenu: true }) }}>
-                  <ArrowDropDownIcon />
-                </Button> */}
+                  <Button size="small" onClick={this.openPopup}>New request</Button>
+
                 </ButtonGroup>
-
-                {/* <Popper open={this.state.openleavemenu} anchorEl={this.anchorRef.current} role={undefined} transition disablePortal>
-                {({ TransitionProps, placement }) => (
-                  <Grow
-                    {...TransitionProps}
-                    style={{
-                      transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
-                    }}
-                  >
-                    <Paper>
-                      <ClickAwayListener onClickAway={this.handleClose}>
-                        <MenuList id="split-button-menu">
-                          {
-                            this.state.allLeaveTypes.map((option, index) => (
-                              <MenuItem
-                                key={option}
-                                onClick={(event) => this.handleMenuItemClick(event, option.Id)}
-                              >
-                                {option.ScreenName}
-                              </MenuItem>
-                            ))}
-                        </MenuList>
-                      </ClickAwayListener>
-                    </Paper>
-                  </Grow>
-                )}
-              </Popper> */}
-
-
 
               </Grid>
             </div>
           </section>
           <section className="page-section">
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
-                <Grid container spacing={2}>
 
-                  {
-                    this.state.allLeaveTypes.map((leaveType, index) => {
+              {
+                this.props.card ?
+                  <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
+                    <Grid container spacing={2}>
 
-                      var totalLeave = this.state.leaveBalance[leaveType.Title];
-                      var usedLeave = this.state.leaveBalance[leaveType.Title + 'Used'];
-
-                      var available = parseFloat(totalLeave) - parseFloat(usedLeave);
-
-                      var cardcolor = "dashboard-card " + this.leaveColors[index];
-
-                      var progressValue = (parseFloat(usedLeave) / parseFloat(totalLeave)) * 100;
-
-                      var leaveIcon = this.leaveIcon.others;
-                      if (leaveType.DisplayName.toLowerCase().indexOf('vacation') >= 0) {
-                        leaveIcon = this.leaveIcon.vacation;
-                      } else if (leaveType.DisplayName.toLowerCase().indexOf('sick') >= 0) {
-                        leaveIcon = this.leaveIcon.sick;
-                      } else if (leaveType.DisplayName.toLowerCase().indexOf('special') >= 0) {
-                        leaveIcon = this.leaveIcon.special;
-                      } else if (leaveType.DisplayName.toLowerCase().indexOf('paid') >= 0) {
-                        leaveIcon = this.leaveIcon.unpaid;
-                      }
-
-                      return (
-                        <Grid className="dashboard-grid" item xs={12} sm={4} md={2} lg={"auto"} xl={"auto"}>
-                          <Paper elevation={2} square={false} className={cardcolor}>
-                            <div className="heading-group">
-                              <div className={'dashboard-heading-icon ' + leaveIcon}>
-                              </div>
-                              <div className={'dashboard-heading'}>
-                                <Typography component={'h6'}>
-                                  {leaveType.DisplayName}
-                                </Typography>
-                                <Typography component={'h2'} className={"card-totalnumber"}>
-                                  {totalLeave}
-                                </Typography>
-                              </div>
-                            </div>
-                            <div className="dashboard-chart">
-                              {/* <LinearProgress className="dashboard-chart-progress" /> */}
-                              <LinearProgress variant="determinate" className="dashboard-chart-progress" value={progressValue} />
-
-                            </div>
-                            <div className="dashboard-group">
-                              <List className="dashboard-list" >
-                                <ListItem>
-                                  <ListItemText>
-                                    Available <Badge>{available}</Badge>
-                                  </ListItemText>
-
-                                </ListItem>
-                                <ListItem>
-                                  <ListItemText>
-                                    Consumed <Badge>{usedLeave}</Badge>
-                                  </ListItemText>
-
-                                </ListItem>
-                                <ListItem>
-                                  <ListItemText>
-                                    Pending <Badge>0</Badge>
-                                  </ListItemText>
-
-                                </ListItem>
-
-                              </List>
-
-                            </div>
-
-                          </Paper>
-                        </Grid>
-                      );
-                    })
-                  }
-
-
-
-                </Grid>
-              </Grid>
-
-              {/* <Grid item xs={3} sm={3} md={3} lg={3} xl={3}>
-              <TextField
-                id="standard-select-currency"
-                onChange={(e) => this.searchLeave.call(this, e)}
-                label="Search"
-                placeholder="Search"
-                className="form-group"
-                variant={"outlined"}
-                size={"small"}
-              >
-              </TextField>
-            </Grid> */}
-
-              <Grid className="manageLeave" item xs={12} sm={12} md={12} lg={12} xl={12}>
-
-                <MaterialTable
-                  title="List of Leave"
-                  icons={tableIcons}
-                  columns={columns}
-                  data={this.state.listLeaveDetails}
-                  actions={[
-                    (rowData: LeaveDetails) => ({
-                      icon: forwardRef((props: any, ref: any) => <EditIcon />),
-                      tooltip: 'Edit',
-                      onClick: (event, value) => this.editLeave(rowData.Id),
-                      disabled: rowData["Status"] == 'Cancelled'
-                    }),
-                    (rowData: LeaveDetails) => ({
-                      icon: forwardRef((props: any, ref: any) => <DeleteIcon />),
-                      tooltip: 'Cancel',
-                      onClick: (event, value) => this.deleteLeave(rowData.Id),
-                      disabled: rowData["Status"] == 'Cancelled'
-                    }),
-                    {
-                      icon: forwardRef((props: any, ref: any) => <VisibilityIcon />),
-                      tooltip: 'View',
-                      onClick: (event, rowData: LeaveDetails) => this.viewLeave(rowData.Id),
-                    }
-                  ]}
-                  options={{
-                    actionsColumnIndex: 5
-                  }}
-                />
-
-                {/* <MaterialTable
-                title="Simple Action Preview"
-                columns={[
-                  { title: 'Name', field: 'name' },
-                  { title: 'Surname', field: 'surname' },
-                  { title: 'Birth Year', field: 'birthYear', type: 'numeric' },
-                  {
-                    title: 'Birth Place',
-                    field: 'birthCity',
-                    lookup: { 34: 'İstanbul', 63: 'Şanlıurfa' },
-                  },
-                ]}
-                data={[
-                  { name: 'Mehmet', surname: 'Baran', birthYear: 1987, birthCity: 63 },
-                  { name: 'Zerya Betül', surname: 'Baran', birthYear: 2017, birthCity: 34 },
-                ]}
-              /> */}
-
-
-                {/* <Table component={Paper} elevation={0}>
-                <TableContainer>
-                  <Table stickyHeader aria-label="sticky table" className="table-container">
-                    <TableHead>
-                      <TableRow>
-                        {columns.map((column) => (
-                          <TableCell
-                            size={"small"}
-                            key={column.id}
-                            style={{ minWidth: column.minWidth }}
-                          >
-                            {column.label}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
                       {
-                        this.state.listLeaveDetails.slice(this.state.page * this.state.rowsPerPage, this.state.page * this.state.rowsPerPage + this.state.rowsPerPage).map((row) => {
+                        this.state.allLeaveTypes.map((leaveType, index) => {
+
+                          var totalLeave = this.state.leaveBalance[leaveType.Title];
+                          var usedLeave = this.state.leaveBalance[leaveType.Title + 'Used'];
+
+                          var available = parseFloat(totalLeave) - parseFloat(usedLeave);
+
+                          var cardcolor = "dashboard-card " + this.leaveColors[index];
+
+                          var progressValue = (parseFloat(usedLeave) / parseFloat(totalLeave)) * 100;
+
+                          var leaveIcon = this.leaveIcon.others;
+                          if (leaveType.DisplayName.toLowerCase().indexOf('vacation') >= 0) {
+                            leaveIcon = this.leaveIcon.vacation;
+                          } else if (leaveType.DisplayName.toLowerCase().indexOf('sick') >= 0) {
+                            leaveIcon = this.leaveIcon.sick;
+                          } else if (leaveType.DisplayName.toLowerCase().indexOf('special') >= 0) {
+                            leaveIcon = this.leaveIcon.special;
+                          } else if (leaveType.DisplayName.toLowerCase().indexOf('paid') >= 0) {
+                            leaveIcon = this.leaveIcon.unpaid;
+                          }
+
                           return (
-                            <TableRow hover role="checkbox" tabIndex={-1}>
-                              {columns.map((column) => {
-                                if (column.id != 'Action') {
-                                  var value = row[column.id];
-                                  if (column.id == 'From' || column.id == 'To') {
-                                    var date = new Date(value);
-                                    value = this.formatDate(date);
-                                  }
-                                  return (
-                                    <TableCell size={"small"} key={column.id}>
-                                      {value}
-                                    </TableCell>
-                                  );
-                                } else {
-                                  return (
-                                    <TableCell size={"small"} key={column.id}>
-                                      <Grid container>
-                                        <Grid item xs={8}>
-                                          <span style={{ cursor: "pointer" }} onClick={this.editLeave.bind(this, row.Id)}><EditIcon /></span>
-                                          <span style={{ cursor: "pointer" }} onClick={this.deleteLeave.bind(this, row.Id)}><DeleteIcon /></span>
-                                          <span style={{ cursor: "pointer" }} onClick={this.viewLeave.bind(this, row.Id)}><VisibilityIcon /></span>
-                                        </Grid>
-                                      </Grid>
-                                    </TableCell>
-                                  );
-                                }
-                              })}
-                            </TableRow>
+                            <Grid className="dashboard-grid" item xs={12} sm={4} md={2} lg={"auto"} xl={"auto"}>
+                              <Paper elevation={2} square={false} className={cardcolor}>
+                                <div className="heading-group">
+                                  <div className={'dashboard-heading-icon ' + leaveIcon}>
+                                  </div>
+                                  <div className={'dashboard-heading'}>
+                                    <Typography component={'h6'}>
+                                      {leaveType.DisplayName}
+                                    </Typography>
+                                    <Typography component={'h2'} className={"card-totalnumber"}>
+                                      {totalLeave}
+                                    </Typography>
+                                  </div>
+                                </div>
+                                <div className="dashboard-chart">
+                                  <LinearProgress variant="determinate" className="dashboard-chart-progress" value={progressValue} />
+
+                                </div>
+                                <div className="dashboard-group">
+                                  <List className="dashboard-list" >
+                                    <ListItem>
+                                      <ListItemText>
+                                        Available <Badge>{available}</Badge>
+                                      </ListItemText>
+
+                                    </ListItem>
+                                    <ListItem>
+                                      <ListItemText>
+                                        Consumed <Badge>{usedLeave}</Badge>
+                                      </ListItemText>
+
+                                    </ListItem>
+                                    <ListItem>
+                                      <ListItemText>
+                                        Pending <Badge>0</Badge>
+                                      </ListItemText>
+
+                                    </ListItem>
+
+                                  </List>
+
+                                </div>
+
+                              </Paper>
+                            </Grid>
                           );
                         })
                       }
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                <TablePagination
-                  rowsPerPageOptions={[5, 10, 25, 100]}
-                  component="div"
-                  count={this.state.listLeaveDetails.length}
-                  rowsPerPage={this.state.rowsPerPage}
-                  page={this.state.page}
-                  onChangePage={handleChangePage}
-                  onChangeRowsPerPage={handleChangeRowsPerPage}
-                />
-              </Table> */}
-              </Grid>
+
+                    </Grid>
+                  </Grid>
+                  : ''
+              }
+
+
+              {
+                this.props.list ?
+                  <Grid className="manageLeave" item xs={12} sm={12} md={12} lg={12} xl={12}>
+
+                    <MaterialTable
+                      title={this.props.listTitle}
+                      icons={tableIcons}
+                      columns={columns}
+                      data={this.state.listLeaveDetails}
+                      actions={[
+                        (rowData: LeaveDetails) => ({
+                          icon: forwardRef((props: any, ref: any) => <EditIcon />),
+                          tooltip: 'Edit',
+                          onClick: (event, value) => this.editLeave(rowData.Id),
+                          disabled: rowData["Status"] == 'Cancelled'
+                        }),
+                        (rowData: LeaveDetails) => ({
+                          icon: forwardRef((props: any, ref: any) => <DeleteIcon />),
+                          tooltip: 'Cancel',
+                          onClick: (event, value) => this.deleteLeave(rowData.Id),
+                          disabled: rowData["Status"] == 'Cancelled'
+                        }),
+                        {
+                          icon: forwardRef((props: any, ref: any) => <VisibilityIcon />),
+                          tooltip: 'View',
+                          onClick: (event, rowData: LeaveDetails) => this.viewLeave(rowData.Id),
+                        }
+                      ]}
+                      options={{
+                        actionsColumnIndex: 5
+                      }}
+                    />
+
+                  </Grid>
+                  : ''
+              }
+
 
             </Grid>
           </section>
@@ -1053,6 +994,25 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
 
               </Grid>
             </Grid>
+
+
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={12} md={6} lg={6} xl={6} className="form-group">
+                <input accept="image/*" type="file" id="icon-button-file" onChange={(e) => this.fileUpload.call(this, e)} style={{ visibility: "hidden" }} />
+                <label htmlFor="icon-button-file" className="uploadbtn">
+                  <IconButton color="primary" aria-label="upload picture" component="span">
+                    <PhotoCamera />
+                  </IconButton>
+                  <label>{this.state.fileName}</label>
+                </label>
+              </Grid>
+              <Grid item xs={12} sm={12} md={6} lg={6} xl={6} className="form-group">
+                {
+                  this.state.fileName ? <DeleteForeverIcon onClick={this.removeDoc} /> : ''
+                }
+              </Grid>
+            </Grid>
+
           </DialogContent>
           <DialogActions>
             <Button variant="contained" disableElevation color="default" size="small" onClick={this.closePopup}>
@@ -1108,6 +1068,24 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
 
               </Grid>
             </Grid>
+
+            {
+              this.state.fileName ?
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={12} md={6} lg={6} xl={6} className="form-group">
+                    <label htmlFor="icon-button-file" className="uploadbtn">
+                      <IconButton color="primary" aria-label="upload picture" component="span">
+                        <PhotoCamera />
+                      </IconButton>
+                      <label><a href={this.state.formData.DocumentUrl} target="_blank">{this.state.fileName}</a></label>
+                    </label>
+                  </Grid>
+                </Grid>
+                : ''
+            }
+
+
+
           </DialogContent>
           <DialogActions>
             <Button variant="contained" disableElevation color="default" size="small" onClick={this.closeViewPopup}>
