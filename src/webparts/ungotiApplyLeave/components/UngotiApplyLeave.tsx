@@ -77,6 +77,9 @@ import DeleteForeverIcon from '@material-ui/icons/DeleteForever';
 
 import '../../../scss/styles.scss';
 
+import Manager from "./Manager";
+
+
 import {
   Typography, ButtonGroup,
   ListItem,
@@ -104,7 +107,7 @@ var alertify: any = require("../../../ExternalRef/JS/alertify.min.js");
 import { IUngotiApplyLeaveState, LeaveDetails } from './IUngotiApplyLeaveState';
 
 var folderPath = 'Leave Documents';
-
+var currentDate = new Date(new Date().toDateString());
 
 export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveProps, IUngotiApplyLeaveState> {
 
@@ -181,6 +184,11 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
       openDatePicker: false,
       strFrom: this.txtSelectDate,
       strTo: this.txtSelectDate,
+
+      errorleavetype: null,
+      errorfromto: null,
+
+      showManager: false
     };
 
     this.init();
@@ -190,8 +198,12 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
   public init = () => {
     sp.web.currentUser.get().then((userdata) => {
       this.setState({ currentUser: userdata });
-      this.loadLeaveBalance();
+      this.loadAll();
     });
+  }
+
+  public loadAll = () => {
+    this.loadLeaveBalance();
     this.loadAppliedLeave();
     this.loadWeekEndConfig();
     this.loadHolidays();
@@ -213,7 +225,9 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     sp.web.lists
       .getByTitle("LeaveRequest")
       .items
-      .select("Id", "Title", "From", "To", "NoofDays", "Detail", "Status", "LeaveType/Id", "LeaveType/Title", "LeaveType/ScreenName")
+      .select("Id", "Title", "From", "To", "NoofDays", "Detail", "Status", "LeaveType/Id", "LeaveType/Title", "LeaveType/ScreenName", "RequesterId")
+      .filter("RequesterId eq '" + this.state.currentUser.Id + "'")
+      .orderBy('Modified', false)
       .expand("LeaveType")
       .get()
       .then((res) => {
@@ -323,6 +337,12 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     this.setState({ openAddPopup: true });
   }
 
+  public openManager = (value) => {
+    this.setState({ showManager: value });
+    this.loadAll();
+  }
+
+
   public closePopup = () => {
     this.setState({ openAddPopup: false });
   }
@@ -352,7 +372,8 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
       ToHalf: '2',
       DocumentUrl: ''
     };
-    this.setState({ formData: formData, strFrom: this.txtSelectDate, strTo: this.txtSelectDate });
+    this.file = null;
+    this.setState({ formData: formData, strFrom: this.txtSelectDate, strTo: this.txtSelectDate, fileName: '' });
   }
 
   public setFormHalf = (value) => {
@@ -373,6 +394,11 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     var formData = this.state.formData;
     formData.LeaveTypeId = parseInt(event.target.value);
     this.setState({ formData: formData });
+    if (!formData.LeaveTypeId) {
+      this.setState({ errorleavetype: 'Leave type is required' });
+    } else {
+      this.setState({ errorleavetype: null });
+    }
   }
 
   public inputChangeHandler = (e) => {
@@ -528,43 +554,46 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
 
   public submit = () => {
     var formData = this.state.formData;
+    var valid = true;
     if (formData.NoofDays == 0) {
       alertify.error('From and To date is required');
       return;
     }
+
     if (!formData.LeaveTypeId) {
-      alertify.error('Leave type is required');
+      this.setState({ errorleavetype: 'Leave type is required' });
       return;
+    } else {
+      this.setState({ errorleavetype: null });
     }
 
     if (formData.From > formData.To) {
       alertify.error('From date is greater than To date');
       return;
     }
-    var leaveBalance = this.state.leaveBalance;
-    var selLeaveType = this.state.allLeaveTypes.filter(c => c.Id == formData.LeaveTypeId)[0];
-    var selTypeUsed = selLeaveType.Title + 'Used';
 
+    var leaveBalance = this.state.leaveBalance;
+
+    //reset leave balance
     if (formData.Id) {
-      if (this.oldLeaveTypeId != formData.LeaveTypeId) {
-        var oldLeaveType = this.state.allLeaveTypes.filter(c => c.Id == this.oldLeaveTypeId)[0];
-        var strOldTypeUsed = selLeaveType.Title + 'Used';
-        leaveBalance[strOldTypeUsed] = parseFloat(leaveBalance[strOldTypeUsed]) - this.oldNoofDays;
-      } else {
-        leaveBalance[selTypeUsed] = (parseFloat(leaveBalance[selTypeUsed]) - this.oldNoofDays) + '';
+      var oldLeaveType = this.state.allLeaveTypes.filter(c => c.Id == this.oldLeaveTypeId)[0];
+      var oldLeaveTypeUsed = oldLeaveType.Title + 'Used';
+      var oldLeaveTypePendingApproval = oldLeaveType.Title + 'PendingApproval';
+      if (formData.Status == 'Approved') {
+        leaveBalance[oldLeaveTypeUsed] = (parseInt(leaveBalance[oldLeaveTypeUsed]) - this.oldNoofDays) + '';
+      }
+      if (formData.Status == 'Pending') {
+        leaveBalance[oldLeaveTypePendingApproval] = (parseInt(leaveBalance[oldLeaveTypePendingApproval]) - this.oldNoofDays) + '';
       }
     }
 
-    var usedLeave = parseFloat(leaveBalance[selTypeUsed] ? leaveBalance[selTypeUsed] : 0);
-    var totalLeave = usedLeave + formData.NoofDays;
-    var availableLeave = parseFloat(leaveBalance[selLeaveType.Title]);
-    if (totalLeave > availableLeave) {
-      alertify.error('Available ' + selLeaveType.Title + ' leave is ' + availableLeave + ', already used ' + usedLeave + ' ' + selLeaveType.Title + ' leave');
-      return;
-    }
-    leaveBalance[selTypeUsed] = totalLeave + '';
+    var selLeaveType = this.state.allLeaveTypes.filter(c => c.Id == formData.LeaveTypeId)[0];
+    var selLeaveTypePendingApproval = selLeaveType.Title + 'PendingApproval';
+    leaveBalance[selLeaveTypePendingApproval] = (parseInt(leaveBalance[selLeaveTypePendingApproval]) + formData.NoofDays) + '';
 
-    formData.ApproverId = this.state.currentUser.Id;
+    // formData.ApproverId = this.state.currentUser.Id;
+    formData.ApproverId = 18;
+
     formData.RequesterId = this.state.currentUser.Id;
     formData.Status = 'Pending';
 
@@ -579,7 +608,8 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
         .then((response) => {
           this.updateLeaveBalance(leaveBalance);
           if (this.file) {
-            this.uploadfile(formData.Id, 'Leave updated successfully');
+            this.uploadfile(formData.Id);
+            alertify.success('Leave updated successfully');
           } else {
             alertify.success('Leave updated successfully');
           }
@@ -591,7 +621,8 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
         .then((res) => {
           this.updateLeaveBalance(leaveBalance);
           if (this.file) {
-            this.uploadfile(res.data.Id, 'Leave applied successfully');
+            this.uploadfile(res.data.Id);
+            alertify.success('Leave applied successfully');
           } else {
             alertify.success('Leave applied successfully');
           }
@@ -605,19 +636,18 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
       .items.getById(leaveBalance.Id)
       .update(leaveBalance)
       .then((response) => {
-        this.init();
+        this.loadAll();
         this.closePopup();
       });
   }
 
-  public uploadfile = (newId, msg) => {
+  public uploadfile = (newId) => {
     var siteURL = this.props.siteUrl;
     sp.web.getFolderByServerRelativeUrl(folderPath).folders.add(folderPath + '/' + newId).then(result => {
       result.folder.files.add(this.file.name, this.file, true)
         .then((fresult) => {
           var filePath = siteURL + '/' + folderPath + '/' + newId + '/' + this.file.name
           sp.web.lists.getByTitle("LeaveRequest").items.getById(newId).update({ DocumentUrl: filePath }).then(function (result) {
-            alertify.success(msg);
           });
         });
     });
@@ -632,7 +662,14 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     var leaveBalance = this.state.leaveBalance;
     var selLeaveType = this.state.allLeaveTypes.filter(c => c.Id == leaveData.LeaveTypeId)[0];
     var selTypeUsed = selLeaveType.Title + 'Used';
-    leaveBalance[selTypeUsed] = (parseFloat(leaveBalance[selTypeUsed]) - leaveData.NoofDays) + '';
+    var selTypePendingApproval = selLeaveType.Title + 'PendingApproval';
+
+    if (leaveData.Status == 'Approved') {
+      leaveBalance[selTypeUsed] = (parseInt(leaveBalance[selTypeUsed]) - leaveData.NoofDays) + '';
+    } else if (leaveData.Status == 'Pending') {
+      leaveBalance[selTypePendingApproval] = (parseInt(leaveBalance[selTypePendingApproval]) - leaveData.NoofDays) + '';
+    }
+
     this.updateLeaveBalance(leaveBalance);
     sp.web.lists
       .getByTitle("LeaveRequest")
@@ -647,7 +684,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
           .then((updateresponse) => {
             this.setState({ openDeleteConfirm: false });
             alertify.success('Leave cancelled successfully');
-            this.init();
+            this.loadAll();
           });
       });
 
@@ -740,385 +777,422 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     };
 
     return (
+
       <div className={styles.ungotiApplyLeave}>
-        <div >
-          <section className="page-section">
-            <div className="page-title">
-              <Grid container spacing={2} justify="space-between" >
-                <Typography component={'h3'}>
-                  {
-                    this.props.card ? this.props.cardTitle : ''
-                  }
-                </Typography>
-                <ButtonGroup disableElevation variant="contained" size="small" color="primary">
-                  <Button size="small" onClick={this.openPopup}>New request</Button>
+        {
+          !this.state.showManager ?
+            <div>
 
-                </ButtonGroup>
+              <div >
+                <section className="page-section">
+                  <div className="page-title">
+                    <Grid container spacing={2} justify="space-between" >
+                      <Typography component={'h3'}>
+                        {
+                          this.props.card ? this.props.cardTitle : ''
+                        }
+                      </Typography>
+                      <ButtonGroup disableElevation variant="contained" size="small" color="primary">
+                        <Button size="small" onClick={this.openManager.bind(this, true)}>Manager</Button>
+                        <Button size="small" onClick={this.openPopup}>New request</Button>
 
-              </Grid>
-            </div>
-          </section>
-          <section className="page-section">
-            <Grid container spacing={2}>
+                      </ButtonGroup>
 
-              {
-                this.props.card ?
-                  <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
-                    <Grid container spacing={2}>
+                    </Grid>
+                  </div>
+                </section>
+                <section className="page-section">
+                  <Grid container spacing={2}>
 
-                      {
-                        this.state.allLeaveTypes.map((leaveType, index) => {
+                    {
+                      this.props.card ?
+                        <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
+                          <Grid container spacing={2}>
 
-                          var totalLeave = this.state.leaveBalance[leaveType.Title];
-                          var usedLeave = this.state.leaveBalance[leaveType.Title + 'Used'];
+                            {
+                              this.state.allLeaveTypes.map((leaveType, index) => {
 
-                          var available = parseFloat(totalLeave) - parseFloat(usedLeave);
+                                var totalLeave = this.state.leaveBalance[leaveType.Title];
+                                var usedLeave = this.state.leaveBalance[leaveType.Title + 'Used'];
+                                var pendingLeave = this.state.leaveBalance[leaveType.Title + 'PendingApproval'];
 
-                          var cardcolor = "dashboard-card " + this.leaveColors[index];
+                                var available = parseFloat(totalLeave) - parseFloat(usedLeave);
 
-                          var progressValue = (parseFloat(usedLeave) / parseFloat(totalLeave)) * 100;
+                                var cardcolor = "dashboard-card " + this.leaveColors[index];
 
-                          var leaveIcon = this.leaveIcon.others;
-                          if (leaveType.DisplayName.toLowerCase().indexOf('vacation') >= 0) {
-                            leaveIcon = this.leaveIcon.vacation;
-                          } else if (leaveType.DisplayName.toLowerCase().indexOf('sick') >= 0) {
-                            leaveIcon = this.leaveIcon.sick;
-                          } else if (leaveType.DisplayName.toLowerCase().indexOf('special') >= 0) {
-                            leaveIcon = this.leaveIcon.special;
-                          } else if (leaveType.DisplayName.toLowerCase().indexOf('paid') >= 0) {
-                            leaveIcon = this.leaveIcon.unpaid;
+                                var progressValue = (parseFloat(usedLeave) / parseFloat(totalLeave)) * 100;
+
+                                if (parseFloat(usedLeave) > parseFloat(totalLeave)) {
+                                  progressValue = 100;
+                                }
+                                if (available < 0) {
+                                  available = 0;
+                                }
+
+                                var leaveIcon = this.leaveIcon.others;
+                                if (leaveType.DisplayName.toLowerCase().indexOf('vacation') >= 0) {
+                                  leaveIcon = this.leaveIcon.vacation;
+                                } else if (leaveType.DisplayName.toLowerCase().indexOf('sick') >= 0) {
+                                  leaveIcon = this.leaveIcon.sick;
+                                } else if (leaveType.DisplayName.toLowerCase().indexOf('special') >= 0) {
+                                  leaveIcon = this.leaveIcon.special;
+                                } else if (leaveType.DisplayName.toLowerCase().indexOf('paid') >= 0) {
+                                  leaveIcon = this.leaveIcon.unpaid;
+                                }
+
+                                return (
+                                  <Grid className="dashboard-grid" item xs={12} sm={4} md={2} lg={"auto"} xl={"auto"}>
+                                    <Paper elevation={2} square={false} className={cardcolor}>
+                                      <div className="heading-group">
+                                        <div className={'dashboard-heading-icon ' + leaveIcon}>
+                                        </div>
+                                        <div className={'dashboard-heading'}>
+                                          <Typography component={'h6'}>
+                                            {leaveType.DisplayName}
+                                          </Typography>
+                                          <Typography component={'h2'} className={"card-totalnumber"}>
+                                            {totalLeave}
+                                          </Typography>
+                                        </div>
+                                      </div>
+                                      <div className="dashboard-chart">
+                                        <LinearProgress variant="determinate" className="dashboard-chart-progress" value={progressValue} />
+
+                                      </div>
+                                      <div className="dashboard-group">
+                                        <List className="dashboard-list" >
+                                          <ListItem>
+                                            <ListItemText>
+                                              Available <Badge>{available}</Badge>
+                                            </ListItemText>
+
+                                          </ListItem>
+                                          <ListItem>
+                                            <ListItemText>
+                                              Consumed <Badge>{usedLeave}</Badge>
+                                            </ListItemText>
+
+                                          </ListItem>
+                                          <ListItem>
+                                            <ListItemText>
+                                              Pending <Badge>{pendingLeave}</Badge>
+                                            </ListItemText>
+
+                                          </ListItem>
+
+                                        </List>
+
+                                      </div>
+
+                                    </Paper>
+                                  </Grid>
+                                );
+                              })
+                            }
+
+                          </Grid>
+                        </Grid>
+                        : ''
+                    }
+
+
+                    {
+                      this.props.list ?
+                        <Grid className="manageLeave" item xs={12} sm={12} md={12} lg={12} xl={12}>
+
+                          <MaterialTable
+                            title={this.props.listTitle}
+                            icons={tableIcons}
+                            columns={columns}
+                            data={this.state.listLeaveDetails}
+                            actions={[
+                              (rowData: LeaveDetails) => ({
+                                icon: forwardRef((props: any, ref: any) => <EditIcon />),
+                                tooltip: 'Edit',
+                                onClick: (event, value) => this.editLeave(rowData.Id),
+                                disabled: ((rowData["Status"] == 'Cancelled' && rowData.From < currentDate) || rowData.From < currentDate)
+                              }),
+                              (rowData: LeaveDetails) => ({
+                                icon: forwardRef((props: any, ref: any) => <DeleteIcon />),
+                                tooltip: 'Cancel',
+                                onClick: (event, value) => this.deleteLeave(rowData.Id),
+                                disabled: ((rowData["Status"] == 'Rejected' &&  rowData.From < currentDate) || (rowData["Status"] == 'Cancelled' &&  rowData.From < currentDate) || rowData.From < currentDate)
+                              }),
+                              {
+                                icon: forwardRef((props: any, ref: any) => <VisibilityIcon />),
+                                tooltip: 'View',
+                                onClick: (event, rowData: LeaveDetails) => this.viewLeave(rowData.Id),
+                              }
+                            ]}
+                            options={{
+                              actionsColumnIndex: 5
+                            }}
+                          />
+
+                        </Grid>
+                        : ''
+                    }
+
+
+                  </Grid>
+                </section>
+              </div>
+
+              <Dialog open={this.state.openAddPopup} className="applyLeaveDialog">
+                <DialogTitle className="MuiDialogTitle-bg" id="form-dialog-title">
+                  <Typography component={"h5"}>Leave Request for {this.state.currentUser.Title}</Typography>
+                </DialogTitle>
+                <DialogContent>
+                  <section className="dateRangePicker">
+
+
+                    <Grid container spacing={2} className="datefield">
+                      <Grid sm={12} md={6} onClick={this.showDatePicker.bind(this, true)}>
+                        <Typography component={"p"} className="small-text">
+                          FROM DATE
+               </Typography>
+
+                        <Typography component={"p"}>
+                          {this.state.strFrom}
+                        </Typography>
+
+                      </Grid>
+                      <div className="dateRangePicker-totalDays" onClick={this.showDatePicker.bind(this, true)}>
+                        <span className="number">{this.state.formData.NoofDays} Day(s)</span>
+
+                      </div>
+                      <Grid sm={12} md={6} className={"text-right"} onClick={this.showDatePicker.bind(this, true)}>
+                        <Typography component={"p"} className="small-text">
+                          TO DATE
+               </Typography>
+
+                        <Typography component={"p"}>
+                          {this.state.strTo}
+                        </Typography>
+
+                      </Grid>
+
+                      <DateRangePicker
+                        // definedRanges={[]}
+                        open={this.state.openDatePicker}
+                        toggle={this.showDatePicker.bind(this, false)}
+                        onChange={(range) => this.setDateRange(range)}
+                        wrapperClassName="modal-DateRagePicker"
+                      />
+
+                    </Grid>
+
+
+                  </section>
+
+                  <Grid container justify={"space-between"} alignItems={"center"}>
+                    <Grid sm={5} className="text-right">
+                      <ButtonGroup color="primary" variant="contained" size={"small"} disableElevation>
+                        <Button variant={"contained"} color={this.state.formData.FromHalf == '1' ? 'primary' : 'default'} onClick={this.setFormHalf.bind(this, '1')}>First half</Button>
+                        <Button variant={"contained"} color={this.state.formData.FromHalf == '2' ? 'primary' : 'default'} onClick={this.setFormHalf.bind(this, '2')}>Second half</Button>
+                      </ButtonGroup>
+                    </Grid>
+                    <Grid sm={2}>
+                      <Typography component={"p"} className={"small text-center"}>To</Typography>
+                    </Grid>
+                    <Grid sm={5}>
+                      <ButtonGroup color="primary" variant="contained" size={"small"} disableElevation>
+                        <Button variant={"contained"} color={this.state.formData.ToHalf == '1' ? 'primary' : 'default'} onClick={this.setToHalf.bind(this, '1')}>First half</Button>
+                        <Button variant={"contained"} color={this.state.formData.ToHalf == '2' ? 'primary' : 'default'} onClick={this.setToHalf.bind(this, '2')}>Second half</Button>
+                      </ButtonGroup>
+                    </Grid>
+                  </Grid>
+                  <Grid container>
+                    <Grid sm={12} >
+                      <FormControl variant="outlined" className="form-group" size="small" error={this.state.errorleavetype ? true : false}>
+                        <InputLabel id="standard-select-currency" >Leave Type</InputLabel>
+                        <Select
+                          labelId="standard-select-currency"
+                          id="standard-select-currency"
+                          value={this.state.formData.LeaveTypeId} onChange={this.setLeaveType}
+                          label="Leave Type"
+                        >
+                          {
+                            this.state.allLeaveTypes.map((leaveType) => {
+                              return (
+                                <MenuItem value={leaveType.Id}>{leaveType.DisplayName}</MenuItem>
+                              );
+                            })
                           }
+                        </Select>
+                      </FormControl>
+                      <FormHelperText>{this.state.errorleavetype}</FormHelperText>
 
-                          return (
-                            <Grid className="dashboard-grid" item xs={12} sm={4} md={2} lg={"auto"} xl={"auto"}>
-                              <Paper elevation={2} square={false} className={cardcolor}>
-                                <div className="heading-group">
-                                  <div className={'dashboard-heading-icon ' + leaveIcon}>
-                                  </div>
-                                  <div className={'dashboard-heading'}>
-                                    <Typography component={'h6'}>
-                                      {leaveType.DisplayName}
-                                    </Typography>
-                                    <Typography component={'h2'} className={"card-totalnumber"}>
-                                      {totalLeave}
-                                    </Typography>
-                                  </div>
-                                </div>
-                                <div className="dashboard-chart">
-                                  <LinearProgress variant="determinate" className="dashboard-chart-progress" value={progressValue} />
+                    </Grid>
 
-                                </div>
-                                <div className="dashboard-group">
-                                  <List className="dashboard-list" >
-                                    <ListItem>
-                                      <ListItemText>
-                                        Available <Badge>{available}</Badge>
-                                      </ListItemText>
+                    <Grid sm={12} >
+                      <TextField
+                        id="standard-select-currency"
+                        value={this.state.formData.Detail}
+                        onChange={(e) => this.inputChangeHandler.call(this, e)}
+                        multiline
+                        label="Note"
+                        name="Detail"
+                        rows="4"
+                        placeholder="Please enter  reason for applying leave"
+                        className="form-group"
+                        variant={"outlined"}
+                        size={"small"}
+                      >
 
-                                    </ListItem>
-                                    <ListItem>
-                                      <ListItemText>
-                                        Consumed <Badge>{usedLeave}</Badge>
-                                      </ListItemText>
+                      </TextField>
 
-                                    </ListItem>
-                                    <ListItem>
-                                      <ListItemText>
-                                        Pending <Badge>0</Badge>
-                                      </ListItemText>
-
-                                    </ListItem>
-
-                                  </List>
-
-                                </div>
-
-                              </Paper>
-                            </Grid>
-                          );
-                        })
-                      }
 
                     </Grid>
                   </Grid>
-                  : ''
-              }
 
 
-              {
-                this.props.list ?
-                  <Grid className="manageLeave" item xs={12} sm={12} md={12} lg={12} xl={12}>
-
-                    <MaterialTable
-                      title={this.props.listTitle}
-                      icons={tableIcons}
-                      columns={columns}
-                      data={this.state.listLeaveDetails}
-                      actions={[
-                        (rowData: LeaveDetails) => ({
-                          icon: forwardRef((props: any, ref: any) => <EditIcon />),
-                          tooltip: 'Edit',
-                          onClick: (event, value) => this.editLeave(rowData.Id),
-                          disabled: rowData["Status"] == 'Cancelled'
-                        }),
-                        (rowData: LeaveDetails) => ({
-                          icon: forwardRef((props: any, ref: any) => <DeleteIcon />),
-                          tooltip: 'Cancel',
-                          onClick: (event, value) => this.deleteLeave(rowData.Id),
-                          disabled: rowData["Status"] == 'Cancelled'
-                        }),
-                        {
-                          icon: forwardRef((props: any, ref: any) => <VisibilityIcon />),
-                          tooltip: 'View',
-                          onClick: (event, rowData: LeaveDetails) => this.viewLeave(rowData.Id),
-                        }
-                      ]}
-                      options={{
-                        actionsColumnIndex: 5
-                      }}
-                    />
-
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={12} md={6} lg={6} xl={6} className="form-group">
+                      <input accept="image/*" type="file" id="icon-button-file" onChange={(e) => this.fileUpload.call(this, e)} style={{ visibility: "hidden" }} />
+                      <label htmlFor="icon-button-file" className="uploadbtn">
+                        <IconButton color="primary" aria-label="upload picture" component="span">
+                          <PhotoCamera />
+                        </IconButton>
+                        <label>{this.state.fileName}</label>
+                      </label>
+                    </Grid>
+                    <Grid item xs={12} sm={12} md={6} lg={6} xl={6} className="form-group">
+                      {
+                        this.state.fileName ? <DeleteForeverIcon onClick={this.removeDoc} /> : ''
+                      }
+                    </Grid>
                   </Grid>
-                  : ''
-              }
 
-
-            </Grid>
-          </section>
-        </div>
-
-        <Dialog open={this.state.openAddPopup} className="applyLeaveDialog">
-          <DialogTitle className="MuiDialogTitle-bg" id="form-dialog-title">
-            <Typography component={"h5"}>Leave Request for {this.state.currentUser.Title}</Typography>
-          </DialogTitle>
-          <DialogContent>
-            <section className="dateRangePicker">
-
-
-              <Grid container spacing={2} className="datefield">
-                <Grid sm={12} md={6} onClick={this.showDatePicker.bind(this, true)}>
-                  <Typography component={"p"} className="small-text">
-                    FROM DATE
-               </Typography>
-
-                  <Typography component={"p"}>
-                    {this.state.strFrom}
-                  </Typography>
-
-                </Grid>
-                <div className="dateRangePicker-totalDays" onClick={this.showDatePicker.bind(this, true)}>
-                  <span className="number">{this.state.formData.NoofDays} Day(s)</span>
-
-                </div>
-                <Grid sm={12} md={6} className={"text-right"} onClick={this.showDatePicker.bind(this, true)}>
-                  <Typography component={"p"} className="small-text">
-                    TO DATE
-               </Typography>
-
-                  <Typography component={"p"}>
-                    {this.state.strTo}
-                  </Typography>
-
-                </Grid>
-
-                <DateRangePicker
-                  // definedRanges={[]}
-                  open={this.state.openDatePicker}
-                  toggle={this.showDatePicker.bind(this, false)}
-                  onChange={(range) => this.setDateRange(range)}
-                  wrapperClassName="modal-DateRagePicker"
-                />
-
-              </Grid>
-
-
-            </section>
-
-            <Grid container justify={"space-between"} alignItems={"center"}>
-              <Grid sm={5} className="text-right">
-                <ButtonGroup color="primary" variant="contained" size={"small"} disableElevation>
-                  <Button variant={"contained"} color={this.state.formData.FromHalf == '1' ? 'primary' : 'default'} onClick={this.setFormHalf.bind(this, '1')}>First half</Button>
-                  <Button variant={"contained"} color={this.state.formData.FromHalf == '2' ? 'primary' : 'default'} onClick={this.setFormHalf.bind(this, '2')}>Second half</Button>
-                </ButtonGroup>
-              </Grid>
-              <Grid sm={2}>
-                <Typography component={"p"} className={"small text-center"}>To</Typography>
-              </Grid>
-              <Grid sm={5}>
-                <ButtonGroup color="primary" variant="contained" size={"small"} disableElevation>
-                  <Button variant={"contained"} color={this.state.formData.ToHalf == '1' ? 'primary' : 'default'} onClick={this.setToHalf.bind(this, '1')}>First half</Button>
-                  <Button variant={"contained"} color={this.state.formData.ToHalf == '2' ? 'primary' : 'default'} onClick={this.setToHalf.bind(this, '2')}>Second half</Button>
-                </ButtonGroup>
-              </Grid>
-            </Grid>
-            <Grid container>
-              <Grid sm={12} >
-                <FormControl variant="outlined" className="form-group" size="small">
-                  <InputLabel id="standard-select-currency" >Leave Type</InputLabel>
-                  <Select
-
-                    labelId="standard-select-currency"
-                    id="standard-select-currency"
-                    value={this.state.formData.LeaveTypeId} onChange={this.setLeaveType}
-                    label="Leave Type"
-                  >
-                    {
-                      this.state.allLeaveTypes.map((leaveType) => {
-                        return (
-                          <MenuItem value={leaveType.Id}>{leaveType.DisplayName}</MenuItem>
-                        );
-                      })
-                    }
-                  </Select>
-                </FormControl>
-
-              </Grid>
-
-              <Grid sm={12} >
-                <TextField
-                  id="standard-select-currency"
-                  value={this.state.formData.Detail}
-                  onChange={(e) => this.inputChangeHandler.call(this, e)}
-                  multiline
-                  label="Note"
-                  name="Detail"
-                  rows="4"
-                  placeholder="Please enter  reason for applying leave"
-                  className="form-group"
-                  variant={"outlined"}
-                  size={"small"}
-                >
-
-                </TextField>
-
-
-              </Grid>
-            </Grid>
-
-
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={12} md={6} lg={6} xl={6} className="form-group">
-                <input accept="image/*" type="file" id="icon-button-file" onChange={(e) => this.fileUpload.call(this, e)} style={{ visibility: "hidden" }} />
-                <label htmlFor="icon-button-file" className="uploadbtn">
-                  <IconButton color="primary" aria-label="upload picture" component="span">
-                    <PhotoCamera />
-                  </IconButton>
-                  <label>{this.state.fileName}</label>
-                </label>
-              </Grid>
-              <Grid item xs={12} sm={12} md={6} lg={6} xl={6} className="form-group">
-                {
-                  this.state.fileName ? <DeleteForeverIcon onClick={this.removeDoc} /> : ''
-                }
-              </Grid>
-            </Grid>
-
-          </DialogContent>
-          <DialogActions>
-            <Button variant="contained" disableElevation color="default" size="small" onClick={this.closePopup}>
-              Cancel
+                </DialogContent>
+                <DialogActions>
+                  <Button variant="contained" disableElevation color="default" size="small" onClick={this.closePopup}>
+                    Cancel
           </Button>
-            <Button variant="contained" disableElevation color="primary" size="small" onClick={this.submit}>
-              Apply
+                  <Button variant="contained" disableElevation color="primary" size="small" onClick={this.submit}>
+                    Apply
           </Button>
 
-          </DialogActions>
-        </Dialog>
+                </DialogActions>
+              </Dialog>
 
 
 
 
-        <Dialog open={this.state.isview} className="applyLeaveDialog">
-          <DialogTitle className="MuiDialogTitle-bg" id="form-dialog-title">
-            <Typography component={"h5"}>Leave Details</Typography>
-          </DialogTitle>
-          <DialogContent>
-            <section className="dateRangePicker">
-              <Grid container spacing={2} className="datefield">
-                <Grid sm={12} md={6}>
-                  <Typography component={"p"} className="small-text">
-                    FROM DATE
+              <Dialog open={this.state.isview} className="applyLeaveDialog">
+                <DialogTitle className="MuiDialogTitle-bg" id="form-dialog-title">
+                  <Typography component={"h5"}>Leave Details</Typography>
+                </DialogTitle>
+                <DialogContent>
+                  <section className="dateRangePicker">
+                    <Grid container spacing={2} className="datefield">
+                      <Grid sm={12} md={6}>
+                        <Typography component={"p"} className="small-text">
+                          FROM DATE
                </Typography>
-                  <Typography component={"p"}>
-                    {this.state.strFrom}
-                  </Typography>
-                </Grid>
-                <div className="dateRangePicker-totalDays">
-                  <span className="number">{this.state.formData.NoofDays} Day(s)</span>
-                </div>
-                <Grid sm={12} md={6} className={"text-right"}>
-                  <Typography component={"p"} className="small-text">
-                    TO DATE
+                        <Typography component={"p"}>
+                          {this.state.strFrom}
+                        </Typography>
+                      </Grid>
+                      <div className="dateRangePicker-totalDays">
+                        <span className="number">{this.state.formData.NoofDays} Day(s)</span>
+                      </div>
+                      <Grid sm={12} md={6} className={"text-right"}>
+                        <Typography component={"p"} className="small-text">
+                          TO DATE
                </Typography>
-                  <Typography component={"p"}>
-                    {this.state.strTo}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </section>
-            <Grid container>
-              <Grid sm={12} >
-                <h2>Reason</h2>
-                <DialogContentText>
-                  {this.state.formData.Detail}
-                </DialogContentText>
-              </Grid>
+                        <Typography component={"p"}>
+                          {this.state.strTo}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  </section>
+                  <Grid container>
+                    <Grid sm={12} >
+                      <h2>Reason</h2>
+                      <DialogContentText>
+                        {this.state.formData.Detail}
+                      </DialogContentText>
+                    </Grid>
 
-              <Grid sm={12} >
+                    <Grid sm={12} >
 
-              </Grid>
-            </Grid>
-
-            {
-              this.state.fileName ?
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={12} md={6} lg={6} xl={6} className="form-group">
-                    <label htmlFor="icon-button-file" className="uploadbtn">
-                      <IconButton color="primary" aria-label="upload picture" component="span">
-                        <PhotoCamera />
-                      </IconButton>
-                      <label><a href={this.state.formData.DocumentUrl} target="_blank">{this.state.fileName}</a></label>
-                    </label>
+                    </Grid>
                   </Grid>
-                </Grid>
-                : ''
-            }
+
+                  {
+                    this.state.fileName ?
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={12} md={6} lg={6} xl={6} className="form-group">
+                          <label htmlFor="icon-button-file" className="uploadbtn">
+                            <IconButton color="primary" aria-label="upload picture" component="span">
+                              <PhotoCamera />
+                            </IconButton>
+                            <label><a href={this.state.formData.DocumentUrl} target="_blank">{this.state.fileName}</a></label>
+                          </label>
+                        </Grid>
+                      </Grid>
+                      : ''
+                  }
 
 
 
-          </DialogContent>
-          <DialogActions>
-            <Button variant="contained" disableElevation color="default" size="small" onClick={this.closeViewPopup}>
-              Cancel
+                </DialogContent>
+                <DialogActions>
+                  <Button variant="contained" disableElevation color="default" size="small" onClick={this.closeViewPopup}>
+                    Cancel
           </Button>
-          </DialogActions>
-        </Dialog>
+                </DialogActions>
+              </Dialog>
 
 
 
 
 
-        <Dialog
-          open={this.state.openDeleteConfirm}
-          onClose={this.closeDelete}
-          aria-labelledby="alert-dialog-title"
-          aria-describedby="alert-dialog-description"
-        >
-          <DialogTitle id="alert-dialog-title">{"Leave Cancellation?"}</DialogTitle>
-          <DialogContent>
-            <DialogContentText id="alert-dialog-description">
-              Do you want to cancel the leave?
+              <Dialog
+                open={this.state.openDeleteConfirm}
+                onClose={this.closeDelete}
+                aria-labelledby="alert-dialog-title"
+                aria-describedby="alert-dialog-description"
+              >
+                <DialogTitle id="alert-dialog-title">{"Leave Cancellation?"}</DialogTitle>
+                <DialogContent>
+                  <DialogContentText id="alert-dialog-description">
+                    Do you want to cancel the leave?
           </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button disableElevation variant="contained" onClick={this.closeDelete} color="default">
-              No
+                </DialogContent>
+                <DialogActions>
+                  <Button disableElevation variant="contained" onClick={this.closeDelete} color="default">
+                    No
           </Button>
-            <Button disableElevation variant="contained" onClick={this.confirmDelete} color="primary" autoFocus>
-              Yes
+                  <Button disableElevation variant="contained" onClick={this.confirmDelete} color="primary" autoFocus>
+                    Yes
           </Button>
-          </DialogActions>
-        </Dialog>
+                </DialogActions>
+              </Dialog>
+            </div>
+            :
+
+            <div>
+              <section className="page-section">
+                <div className="page-title">
+                  <Grid container spacing={2} justify="space-between" >
+                    <Typography component={'h3'}>
+                      {
+                        this.props.card ? this.props.cardTitle : ''
+                      }
+                    </Typography>
+                    <ButtonGroup disableElevation variant="contained" size="small" color="primary">
+                      <Button size="small" onClick={this.openManager.bind(this, false)}>User</Button>
+                    </ButtonGroup>
+
+                  </Grid>
+                </div>
+              </section>
+              <Manager />
+
+            </div>
+        }
 
       </div >
     );

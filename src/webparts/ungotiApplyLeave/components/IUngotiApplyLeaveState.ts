@@ -22,6 +22,11 @@ export interface IUngotiApplyLeaveState {
     openDatePicker: boolean;
     strFrom: string;
     strTo: string;
+
+    errorfromto: string;
+    errorleavetype: string;
+
+    showManager: boolean;
 }
 
 export interface LeaveRequest {
