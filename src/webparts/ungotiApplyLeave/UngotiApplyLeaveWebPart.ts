@@ -12,6 +12,9 @@ import * as strings from 'UngotiApplyLeaveWebPartStrings';
 import UngotiApplyLeave from './components/UngotiApplyLeave';
 import { IUngotiApplyLeaveProps } from './components/IUngotiApplyLeaveProps';
 
+import { MSGraphClient, HttpClient } from '@microsoft/sp-http';
+
+
 export interface IUngotiApplyLeaveWebPartProps {
   description: string;
   card: boolean;
@@ -23,19 +26,22 @@ export interface IUngotiApplyLeaveWebPartProps {
 export default class UngotiApplyLeaveWebPart extends BaseClientSideWebPart<IUngotiApplyLeaveWebPartProps> {
 
   public render(): void {
-    const element: React.ReactElement<IUngotiApplyLeaveProps> = React.createElement(
-      UngotiApplyLeave,
-      {
-        description: this.properties.description,
-        siteUrl: this.context.pageContext.web.absoluteUrl,
-        card: this.properties.card,
-        list: this.properties.list,
-        cardTitle: this.properties.cardTitle,
-        listTitle: this.properties.listTitle,
-      }
-    );
-
-    ReactDom.render(element, this.domElement);
+    this.context.msGraphClientFactory.getClient()
+      .then((_graphClient: MSGraphClient): void => {
+        const element: React.ReactElement<IUngotiApplyLeaveProps> = React.createElement(
+          UngotiApplyLeave,
+          {
+            description: this.properties.description,
+            siteUrl: this.context.pageContext.web.absoluteUrl,
+            card: this.properties.card,
+            list: this.properties.list,
+            cardTitle: this.properties.cardTitle,
+            listTitle: this.properties.listTitle,
+            graphClient: _graphClient
+          }
+        );
+        ReactDom.render(element, this.domElement);
+      });
   }
 
   protected onDispose(): void {

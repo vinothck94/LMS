@@ -16,7 +16,7 @@ import "@pnp/sp/fields";
 import "@pnp/sp/files";
 import "@pnp/sp/security/web";
 import "@pnp/sp/site-users/web";
-
+import "@pnp/sp/profiles";
 
 import Paper from '@material-ui/core/Paper';
 import Table from '@material-ui/core/Table';
@@ -78,6 +78,7 @@ import DeleteForeverIcon from '@material-ui/icons/DeleteForever';
 import '../../../scss/styles.scss';
 
 import Manager from "./Manager";
+import HR from "./HR";
 
 
 import {
@@ -108,10 +109,12 @@ import { IUngotiApplyLeaveState, LeaveDetails } from './IUngotiApplyLeaveState';
 
 var folderPath = 'Leave Documents';
 var currentDate = new Date(new Date().toDateString());
+var azureGroupId = '3acdf24e-e034-4b68-bfbe-e717aed7219c';
 
 export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveProps, IUngotiApplyLeaveState> {
 
   public deleteId = 0;
+  public managerId = 0;
 
   public oldLeaveTypeId = 0;
   public oldNoofDays = 0;
@@ -150,6 +153,10 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     alertify.set("notifier", "position", "top-right");
 
     this.state = {
+
+      isManager: false,
+      isHR: false,
+
       page: 0,
       rowsPerPage: 5,
       openAddPopup: false,
@@ -188,7 +195,8 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
       errorleavetype: null,
       errorfromto: null,
 
-      showManager: false
+      showManager: false,
+      showHR: false
     };
 
     this.init();
@@ -196,7 +204,34 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
   }
 
   public init = () => {
+
+    sp.profiles.myProperties.get().then((profile) => {
+      this.setState({ isManager: profile.DirectReports.length > 0 });
+    })
+
+    this.props.graphClient
+      .api("/me/manager")
+      .get()
+      .then((manager: any) => {
+        sp.web.siteUsers.getByEmail(manager.mail).get().then((response) => {
+          this.managerId = response.Id;
+        });
+      }).catch(error => {
+        console.log(error);
+      });
+
+
     sp.web.currentUser.get().then((userdata) => {
+      this.props.graphClient
+        .api("/groups/" + azureGroupId + "/members")
+        .get()
+        .then((group: any) => {
+          var HRs = group.value.filter(c => c.mail == userdata.Email);
+          this.setState({ isHR: HRs.length > 0 });
+        }).catch(error => {
+          console.log(error);
+        });
+
       this.setState({ currentUser: userdata });
       this.loadAll();
     });
@@ -338,7 +373,12 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
   }
 
   public openManager = (value) => {
-    this.setState({ showManager: value });
+    this.setState({ showManager: value, showHR: false });
+    this.loadAll();
+  }
+
+  public openHR = (value) => {
+    this.setState({ showHR: value, showManager: false });
     this.loadAll();
   }
 
@@ -591,9 +631,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     var selLeaveTypePendingApproval = selLeaveType.Title + 'PendingApproval';
     leaveBalance[selLeaveTypePendingApproval] = (parseInt(leaveBalance[selLeaveTypePendingApproval]) + formData.NoofDays) + '';
 
-    // formData.ApproverId = this.state.currentUser.Id;
-    formData.ApproverId = 18;
-
+    formData.ApproverId = this.managerId;
     formData.RequesterId = this.state.currentUser.Id;
     formData.Status = 'Pending';
 
@@ -780,7 +818,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
 
       <div className={styles.ungotiApplyLeave}>
         {
-          !this.state.showManager ?
+          (!this.state.showManager && !this.state.showHR) ?
             <div>
 
               <div >
@@ -793,7 +831,14 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
                         }
                       </Typography>
                       <ButtonGroup disableElevation variant="contained" size="small" color="primary">
-                        <Button size="small" onClick={this.openManager.bind(this, true)}>Manager</Button>
+                        {
+                          this.state.isManager ? <Button size="small" onClick={this.openManager.bind(this, true)}>Manager</Button> : ''
+                        }
+
+                        {
+                          this.state.isHR ? <Button size="small" onClick={this.openHR.bind(this, true)}>HR</Button> : ''
+                        }
+
                         <Button size="small" onClick={this.openPopup}>New request</Button>
 
                       </ButtonGroup>
@@ -916,7 +961,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
                                 icon: forwardRef((props: any, ref: any) => <DeleteIcon />),
                                 tooltip: 'Cancel',
                                 onClick: (event, value) => this.deleteLeave(rowData.Id),
-                                disabled: ((rowData["Status"] == 'Rejected' &&  rowData.From < currentDate) || (rowData["Status"] == 'Cancelled' &&  rowData.From < currentDate) || rowData.From < currentDate)
+                                disabled: ((rowData["Status"] == 'Rejected' && rowData.From < currentDate) || (rowData["Status"] == 'Cancelled' && rowData.From < currentDate) || rowData.From < currentDate)
                               }),
                               {
                                 icon: forwardRef((props: any, ref: any) => <VisibilityIcon />),
@@ -1173,6 +1218,11 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
             </div>
             :
 
+            ''
+        }
+
+        {
+          this.state.showManager ?
             <div>
               <section className="page-section">
                 <div className="page-title">
@@ -1192,6 +1242,32 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
               <Manager />
 
             </div>
+            : ''
+        }
+
+        {
+          this.state.showHR ?
+            <div>
+              <section className="page-section">
+                <div className="page-title">
+                  <Grid container spacing={2} justify="space-between" >
+                    <Typography component={'h3'}>
+                      {
+                        this.props.card ? this.props.cardTitle : ''
+                      }
+                    </Typography>
+                    <ButtonGroup disableElevation variant="contained" size="small" color="primary">
+                      <Button size="small" onClick={this.openManager.bind(this, false)}>User</Button>
+                    </ButtonGroup>
+
+                  </Grid>
+                </div>
+              </section>
+
+              <HR graphClient={this.props.graphClient} />
+
+            </div>
+            : ''
         }
 
       </div >

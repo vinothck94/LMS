@@ -5,4 +5,5 @@ export interface IUngotiApplyLeaveProps {
   list: boolean;
   cardTitle: string;
   listTitle: string;
+  graphClient: any;
 }

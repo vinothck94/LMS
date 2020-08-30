@@ -1,4 +1,8 @@
 export interface IUngotiApplyLeaveState {
+    
+    isManager: boolean;
+    isHR: boolean;
+
     page: number;
     rowsPerPage: number;
     openAddPopup: boolean;
@@ -27,6 +31,7 @@ export interface IUngotiApplyLeaveState {
     errorleavetype: string;
 
     showManager: boolean;
+    showHR: boolean;
 }
 
 export interface LeaveRequest {

@@ -165,7 +165,7 @@ export default class Manager extends React.Component<{}, any> {
     sp.web.lists
       .getByTitle("LeaveRequest")
       .items
-      .select("Id", "Title", "From", "To", "NoofDays", "Detail", "Status", "LeaveType/Id", "LeaveType/Title", "LeaveType/ScreenName", "ApproverId", "Requester/Id", "Requester/FirstName")
+      .select("Id", "Title", "From", "To", "NoofDays", "Detail", "Status", "LeaveType/Id", "LeaveType/Title", "LeaveType/ScreenName", "ApproverId", "Requester/Id", "Requester/FirstName", "Requester/EMail")
       .filter("Status eq 'Pending' and ApproverId eq '" + this.state.currentUser.Id + "'")
       .orderBy('Modified', false)
       .expand("LeaveType", "Requester")
