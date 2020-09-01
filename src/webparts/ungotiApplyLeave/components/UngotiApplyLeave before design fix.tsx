@@ -76,13 +76,13 @@ import { IUngotiApplyLeaveState } from './IUngotiApplyLeaveState';
 
 export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveProps, IUngotiApplyLeaveState> {
 
-  deleteId = 0;
+  public deleteId = 0;
 
-  oldLeaveTypeId = 0;
-  oldNoofDays = 0;
-  txtSelectDate = 'Select Date';
+  public oldLeaveTypeId = 0;
+  public oldNoofDays = 0;
+  public txtSelectDate = 'Select Date';
 
-  leaveColors = [
+  public leaveColors = [
     'bg-purple',
     'bg-info',
     'bg-pink',
@@ -135,7 +135,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
 
   }
 
-  init = () => {
+  public init = () => {
     sp.web.currentUser.get().then((userdata) => {
       this.setState({ currentUser: userdata });
       this.loadLeaveBalance();
@@ -146,7 +146,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     this.loadHolidays();
   }
 
-  formatDate = (paramdate) => {
+  public formatDate = (paramdate) => {
     var date = paramdate.getDate() + '';
     if (date.length == 1) {
       date = '0' + date;
@@ -158,7 +158,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     return paramdate.getFullYear() + '-' + month + '-' + date;
   }
 
-  loadAppliedLeave = () => {
+  public loadAppliedLeave = () => {
     sp.web.lists
       .getByTitle("LeaveRequest")
       .items
@@ -185,7 +185,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
       });
   }
 
-  loadLeaveTypes = () => {
+  public loadLeaveTypes = () => {
     sp.web.lists
       .getByTitle("LeaveTypes")
       .items
@@ -199,13 +199,13 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
             Id: leaveType.Id,
             Title: leaveType.Title,
             DisplayName: leaveType.ScreenName
-          })
+          });
         }
         this.setState({ allLeaveTypes: allLeaveTypes });
       });
   }
 
-  loadWeekEndConfig = () => {
+  public loadWeekEndConfig = () => {
     sp.web.lists
       .getByTitle("WeekEndConfig")
       .items
@@ -219,13 +219,13 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
           allWeekEndConfig.push({
             Id: weekend.Id,
             Title: weekend.Title
-          })
+          });
         }
         this.setState({ allWeekEndConfig: allWeekEndConfig });
       });
   }
 
-  loadHolidays = () => {
+  public loadHolidays = () => {
     var currentYear = new Date().getFullYear();
     sp.web.lists
       .getByTitle("Holidays")
@@ -240,13 +240,13 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
           allHolidays.push({
             Id: holiday.Id,
             Date: holiday.Date
-          })
+          });
         }
         this.setState({ allHolidays: allHolidays });
       });
   }
 
-  loadLeaveBalance = () => {
+  public loadLeaveBalance = () => {
     var currentYear = new Date().getFullYear();
     sp.web.lists
       .getByTitle("LeaveBalance")
@@ -262,17 +262,17 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
       });
   }
 
-  openPopup = () => {
+  public openPopup = () => {
     this.resetForm();
     this.setState({ openAddPopup: true });
     this.calculateNoOfDays();
   }
 
-  closePopup = () => {
+  public closePopup = () => {
     this.setState({ openAddPopup: false });
   }
 
-  resetForm = () => {
+  public resetForm = () => {
     var formData = this.state.formData;
     formData = {
       Id: 0,
@@ -290,27 +290,27 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     this.setState({ formData: formData, strFrom: this.txtSelectDate, strTo: this.txtSelectDate });
   }
 
-  setFormHalf = (value) => {
+  public setFormHalf = (value) => {
     var formData = this.state.formData;
     formData.FromHalf = value;
     this.setState({ formData: formData });
     this.calculateNoOfDays();
   }
 
-  setToHalf = (value) => {
+  public setToHalf = (value) => {
     var formData = this.state.formData;
     formData.ToHalf = value;
     this.setState({ formData: formData });
     this.calculateNoOfDays();
   }
 
-  setLeaveType = (event: React.ChangeEvent<any>) => {
+  public setLeaveType = (event: React.ChangeEvent<any>) => {
     var formData = this.state.formData;
     formData.LeaveTypeId = parseInt(event.target.value);
     this.setState({ formData: formData });
   }
 
-  inputChangeHandler = (e) => {
+  public inputChangeHandler = (e) => {
     let formData = this.state.formData;
     formData[e.target.name] = e.target.value;
     this.setState({
@@ -318,7 +318,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     });
   }
 
-  dateChangeHandler = (e) => {
+  public dateChangeHandler = (e) => {
     let formData = this.state.formData;
     formData[e.target.name] = new Date(e.target.value);
     this.setState({
@@ -327,7 +327,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     this.calculateNoOfDays();
   }
 
-  checkIfHoliday = (value: Date) => {
+  public checkIfHoliday = (value: Date) => {
     for (let index = 0; index < this.state.allHolidays.length; index++) {
       const holiday = this.state.allHolidays[index];
       var date = new Date(holiday.Date).toLocaleDateString();
@@ -338,7 +338,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     return false;
   }
 
-  checkIfWeekEnd = (value: Date) => {
+  public checkIfWeekEnd = (value: Date) => {
     var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     var dayName = days[value.getDay()];
     for (let index = 0; index < this.state.allWeekEndConfig.length; index++) {
@@ -350,7 +350,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     return false;
   }
 
-  calculateNoOfDays = () => {
+  public calculateNoOfDays = () => {
     var formData = this.state.formData;
     if (formData.From > formData.To) {
       formData.NoofDays = 0;
@@ -392,7 +392,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     this.setState({ formData: formData });
   }
 
-  editLeave = (id) => {
+  public editLeave = (id) => {
     sp.web.lists
       .getByTitle("LeaveRequest")
       .items.getById(id).get()
@@ -421,12 +421,12 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
       });
   }
 
-  deleteLeave = (id) => {
+  public deleteLeave = (id) => {
     this.deleteId = id;
     this.setState({ openDeleteConfirm: true });
   }
 
-  submit = () => {
+  public submit = () => {
     var formData = this.state.formData;
     if (!formData.LeaveTypeId) {
       alertify.error('Leave type is required');
@@ -486,7 +486,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     }
   }
 
-  updateLeaveBalance = (leaveBalance) => {
+  public updateLeaveBalance = (leaveBalance) => {
     sp.web.lists
       .getByTitle("LeaveBalance")
       .items.getById(leaveBalance.Id)
@@ -497,11 +497,11 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
       });
   }
 
-  closeDelete = () => {
+  public closeDelete = () => {
     this.setState({ openDeleteConfirm: false });
   }
 
-  confirmDelete = () => {
+  public confirmDelete = () => {
     var leaveData = this.state.listLeaveDetails.filter(c => c.Id == this.deleteId)[0];
     var leaveBalance = this.state.leaveBalance;
     var selLeaveType = this.state.allLeaveTypes.filter(c => c.Id == leaveData.LeaveTypeId)[0];
@@ -519,11 +519,11 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
       });
   }
 
-  showDatePicker = (value) => {
+  public showDatePicker = (value) => {
     this.setState({ openDatePicker: value });
   }
 
-  setDateRange = (range) => {
+  public setDateRange = (range) => {
     let formData = this.state.formData;
     formData.From = range.startDate;
     formData.To = range.endDate;
@@ -624,7 +624,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
 
                         </Paper>
                       </Grid>
-                    )
+                    );
                   })
                 }
 
@@ -676,7 +676,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
                                       </Grid>
                                     </Grid>
                                   </TableCell>
-                                )
+                        ;        )
                               }
                             })}
                           </TableRow>
@@ -775,7 +775,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
                       this.state.allLeaveTypes.map((leaveType) => {
                         return (
                           <MenuItem value={leaveType.Id}>{leaveType.Title}</MenuItem>
-                        )
+                ;        )
                       })
                     }
                   </Select>

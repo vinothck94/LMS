@@ -32,6 +32,7 @@ export interface IUngotiApplyLeaveState {
 
     showManager: boolean;
     showHR: boolean;
+    showHolidays: boolean;
 }
 
 export interface LeaveRequest {

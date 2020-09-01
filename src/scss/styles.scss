@@ -408,6 +408,14 @@ p,span, h1,h2,h3,h4,h5,h6, div, a {
     }
 }
 .manageLeave {
+    .MuiTableCell-head {
+        background-color: rgba(0,0,0,0.06) !important;
+        border-top: 1px solid #f5f5f5 !important;
+        border-bottom: 1px solid #f5f5f5 !important;
+        font-size: 15px !important;
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
     .MuiTableCell-body {
         padding-top: 1px !important;
         padding-bottom: 1px !important;
@@ -419,4 +427,33 @@ p,span, h1,h2,h3,h4,h5,h6, div, a {
             font-size: 1.2rem;
         }
     }
+}
+.role-button-group {
+    // border-radius: 10px;
+    .MuiButton-sizeSmall {
+        min-width: 90px;
+    }
+    .MuiButton-root {
+        border-radius: 15px;
+    }
+    // .MuiButton-containedPrimary {
+    //     background: rgba(46,159,240, 1);
+        
+    // }
+    // .MuiButton-containedSecondary {
+    //     background: rgba(46,159,240, 0.6)
+    // }
+
+}
+.radius-button {
+    border-radius: 15px;
+}
+#icon-button-file {
+    position: absolute;
+}
+
+.list-item{
+    width: 100%;
+    max-width: 360;
+    background-color: white;
 }

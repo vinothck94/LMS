@@ -79,6 +79,7 @@ import '../../../scss/styles.scss';
 
 import Manager from "./Manager";
 import HR from "./HR";
+import Holidays from "./Holidays";
 
 
 import {
@@ -120,7 +121,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
   public oldNoofDays = 0;
   public txtSelectDate = 'Select Date';
 
-  file = null;
+  public file = null;
 
   public leaveColors = [
     'bg-purple',
@@ -196,7 +197,8 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
       errorfromto: null,
 
       showManager: false,
-      showHR: false
+      showHR: false,
+      showHolidays: false
     };
 
     this.init();
@@ -207,7 +209,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
 
     sp.profiles.myProperties.get().then((profile) => {
       this.setState({ isManager: profile.DirectReports.length > 0 });
-    })
+    });
 
     this.props.graphClient
       .api("/me/manager")
@@ -373,12 +375,16 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
   }
 
   public openManager = (value) => {
-    this.setState({ showManager: value, showHR: false });
+    this.setState({ showManager: value, showHR: false, showHolidays: false });
     this.loadAll();
   }
 
+  public openHolidays = (value) => {
+    this.setState({ showHolidays: value, showManager: false, showHR: false });
+  }
+
   public openHR = (value) => {
-    this.setState({ showHR: value, showManager: false });
+    this.setState({ showHR: value, showManager: false, showHolidays: false });
     this.loadAll();
   }
 
@@ -684,7 +690,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     sp.web.getFolderByServerRelativeUrl(folderPath).folders.add(folderPath + '/' + newId).then(result => {
       result.folder.files.add(this.file.name, this.file, true)
         .then((fresult) => {
-          var filePath = siteURL + '/' + folderPath + '/' + newId + '/' + this.file.name
+          var filePath = siteURL + '/' + folderPath + '/' + newId + '/' + this.file.name;
           sp.web.lists.getByTitle("LeaveRequest").items.getById(newId).update({ DocumentUrl: filePath }).then(function (result) {
           });
         });
@@ -761,7 +767,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
   public fileUpload = (e) => {
     var files = e.target.files;
     if (files && files.length > 0) {
-      this.file = files[0]
+      this.file = files[0];
       this.setState({ fileName: files[0].name });
     } else {
       this.file = null;
@@ -817,35 +823,42 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
     return (
 
       <div className={styles.ungotiApplyLeave}>
+
+        <section className="page-section">
+          <div className="page-title">
+            <Grid container spacing={2} justify="flex-end" >
+              <Typography component={'h3'}>
+                {
+                  this.props.card ? this.props.cardTitle : ''
+                }
+              </Typography>
+              <ButtonGroup disableElevation variant="contained" size="small" color="primary" className="role-button-group">
+                {
+                  this.state.isManager ? <Button size="small" onClick={this.openManager.bind(this, true)}>Manager</Button> : ''
+                }
+
+                {
+                  this.state.isHR ? <Button size="small" onClick={this.openHR.bind(this, true)}>HR</Button> : ''
+                }
+
+                <Button size="small" onClick={this.openManager.bind(this, false)}>User</Button>
+
+                <Button size="small" onClick={this.openHolidays.bind(this, true)}>Holidays</Button>
+
+                <Button className="radius-button" color="secondary" variant="contained" size="small" onClick={this.openPopup}>New request</Button>
+              </ButtonGroup>
+
+
+            </Grid>
+          </div>
+        </section>
+
         {
-          (!this.state.showManager && !this.state.showHR) ?
+          (!this.state.showManager && !this.state.showHR && !this.state.showHolidays) ?
             <div>
 
-              <div >
-                <section className="page-section">
-                  <div className="page-title">
-                    <Grid container spacing={2} justify="space-between" >
-                      <Typography component={'h3'}>
-                        {
-                          this.props.card ? this.props.cardTitle : ''
-                        }
-                      </Typography>
-                      <ButtonGroup disableElevation variant="contained" size="small" color="primary">
-                        {
-                          this.state.isManager ? <Button size="small" onClick={this.openManager.bind(this, true)}>Manager</Button> : ''
-                        }
+              <div>
 
-                        {
-                          this.state.isHR ? <Button size="small" onClick={this.openHR.bind(this, true)}>HR</Button> : ''
-                        }
-
-                        <Button size="small" onClick={this.openPopup}>New request</Button>
-
-                      </ButtonGroup>
-
-                    </Grid>
-                  </div>
-                </section>
                 <section className="page-section">
                   <Grid container spacing={2}>
 
@@ -1093,20 +1106,25 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
 
 
                   <Grid container spacing={2}>
-                    <Grid item xs={12} sm={12} md={6} lg={6} xl={6} className="form-group">
+                    <Grid item xs={12} sm={12} md={12} lg={12} xl={12} className="form-group">
                       <input accept="image/*" type="file" id="icon-button-file" onChange={(e) => this.fileUpload.call(this, e)} style={{ visibility: "hidden" }} />
                       <label htmlFor="icon-button-file" className="uploadbtn">
                         <IconButton color="primary" aria-label="upload picture" component="span">
                           <PhotoCamera />
                         </IconButton>
+
                         <label>{this.state.fileName}</label>
+
                       </label>
+                      <IconButton color="secondary">
+                        {
+                          this.state.fileName ? <DeleteForeverIcon onClick={this.removeDoc} /> : ''
+                        }
+                      </IconButton>
                     </Grid>
-                    <Grid item xs={12} sm={12} md={6} lg={6} xl={6} className="form-group">
-                      {
-                        this.state.fileName ? <DeleteForeverIcon onClick={this.removeDoc} /> : ''
-                      }
-                    </Grid>
+                    {/* <Grid item xs={12} sm={12} md={6} lg={6} xl={6} className="form-group">
+                     
+                    </Grid> */}
                   </Grid>
 
                 </DialogContent>
@@ -1224,7 +1242,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
         {
           this.state.showManager ?
             <div>
-              <section className="page-section">
+              {/* <section className="page-section">
                 <div className="page-title">
                   <Grid container spacing={2} justify="space-between" >
                     <Typography component={'h3'}>
@@ -1238,7 +1256,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
 
                   </Grid>
                 </div>
-              </section>
+              </section> */}
               <Manager />
 
             </div>
@@ -1246,9 +1264,13 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
         }
 
         {
+          this.state.showHolidays && <Holidays />
+        }
+
+        {
           this.state.showHR ?
             <div>
-              <section className="page-section">
+              {/* <section className="page-section">
                 <div className="page-title">
                   <Grid container spacing={2} justify="space-between" >
                     <Typography component={'h3'}>
@@ -1262,7 +1284,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
 
                   </Grid>
                 </div>
-              </section>
+              </section> */}
 
               <HR graphClient={this.props.graphClient} />
 

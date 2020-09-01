@@ -855,6 +855,7 @@ export default class UngotiApplyLeave extends React.Component<IUngotiApplyLeaveP
                   options={{
                     actionsColumnIndex: 5
                   }}
+                  
                 />
 
                 {/* <MaterialTable

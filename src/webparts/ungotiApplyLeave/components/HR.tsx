@@ -110,7 +110,7 @@ export default class HR extends React.Component<IHRProps, any> {
       .get()
       .then((response: any) => {
         var departments = this.state.departments;
-        departments = [];
+        departments = ['Select'];
         var allUserwithDepartments = response.value;
         for (let index = 0; index < allUserwithDepartments.length; index++) {
           const value = allUserwithDepartments[index];
@@ -192,7 +192,7 @@ export default class HR extends React.Component<IHRProps, any> {
             leaveBalance.push(result);
           }
         }
-        this.setState({ listLeaveBalance: leaveBalance });
+        this.setState({ listLeaveBalance: leaveBalance, copyListLeaveBalance: leaveBalance });
       });
   }
 
@@ -241,7 +241,21 @@ export default class HR extends React.Component<IHRProps, any> {
   }
 
   public filterbyDepartment = (event: React.ChangeEvent<any>) => {
-
+    if (event.target.value != 'Select') {
+      var allLeaveBalance = this.state.copyListLeaveBalance;
+      var allUserwithDepartments = this.state.allUserwithDepartments;
+      var departmentUsers = allUserwithDepartments.filter(c => c.department == event.target.value);
+      var filteredLeaveBalance = this.state.listLeaveBalance;
+      filteredLeaveBalance = [];
+      for (let i = 0; i < departmentUsers.length; i++) {
+        const mail = departmentUsers[i].mail;
+        var leaveBalances = allLeaveBalance.filter(c => c.EMail == mail);
+        filteredLeaveBalance = filteredLeaveBalance.concat(leaveBalances);
+      }
+      this.setState({ listLeaveBalance: filteredLeaveBalance });
+    } else {
+      this.setState({ listLeaveBalance: this.state.copyListLeaveBalance });
+    }
   }
 
   public submit = () => {
@@ -297,6 +311,7 @@ export default class HR extends React.Component<IHRProps, any> {
               <Select
                 labelId="standard-select-currency"
                 id="standard-select-currency"
+                defaultValue="Select"
                 onChange={this.filterbyDepartment}
                 label="Departments"
               >
