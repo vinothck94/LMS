@@ -77,11 +77,11 @@ export default class UngotiApplyLeaveWebPart extends BaseClientSideWebPart<IUngo
               groupName: "UI Config",
               groupFields: [
                 PropertyPaneCheckbox('card', {
-                  checked: true,
+                  checked: false,
                   text: "Card"
                 }),
                 PropertyPaneCheckbox('list', {
-                  checked: true,
+                  checked: false,
                   text: "List"
                 })
               ]
